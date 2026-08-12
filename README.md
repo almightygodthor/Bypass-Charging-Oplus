@@ -48,6 +48,6 @@ Bypass charging presents a viable approach to optimize thermal management and ba
 
 ✏ Credits
 ⦁ Original concept and script by Thundergod Thor⚡
-⦁ Application design and web development by Robinop
+⦁ Application design and app development by Robinop
 
 ————————
