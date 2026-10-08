@@ -142,13 +142,13 @@ public final class SparklineCardView extends View {
 
         paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.LEFT);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT);
+        paint.setTypeface(AppTypography.body());
         paint.setColor(0xFFE7E9E4);
         paint.setTextSize(sp(19));
         c.drawText(icon, dp(18), dp(30), paint);
 
         paint.setTextAlign(Paint.Align.RIGHT);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        paint.setTypeface(AppTypography.labelMedium());
         paint.setLetterSpacing(.11f);
         paint.setColor(0xFFBFC6BF);
         paint.setTextSize(sp(10));
@@ -156,7 +156,7 @@ public final class SparklineCardView extends View {
         paint.setLetterSpacing(0);
 
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+        paint.setTypeface(AppTypography.value());
         paint.setTextSize(sp(22));
         paint.setColor(value.startsWith("+") ? accent : 0xFFF0F0EA);
         c.drawText(value, w / 2f, h - dp(17), paint);
