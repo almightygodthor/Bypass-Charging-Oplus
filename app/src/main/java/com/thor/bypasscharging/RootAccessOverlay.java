@@ -20,7 +20,7 @@ public final class RootAccessOverlay extends FrameLayout {
     private Listener listener;
 
     private static final int BG = 0xCC08100B;
-    private static final int CARD = 0xF21B241D;
+    private static final int CARD = 0xD91F2A22;
     private static final int TEXT = 0xFFF1F4EF;
     private static final int MUTED = 0xFFADB8AE;
     private static final int GREEN = 0xFF9DD49D;
@@ -35,7 +35,8 @@ public final class RootAccessOverlay extends FrameLayout {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
         card.setPadding(dp(28), dp(28), dp(28), dp(28));
-        card.setBackground(round(CARD, 30));
+        card.setBackground(roundGlass(CARD, 30));
+        card.setElevation(dp(8));
 
         TextView icon = text("◆", 26, GREEN);
         icon.setGravity(Gravity.CENTER);
@@ -89,6 +90,14 @@ public final class RootAccessOverlay extends FrameLayout {
         this.listener = listener;
     }
 
+    public void setRevoked() {
+        status.setText("Superuser access is required");
+        status.setTextColor(Color.rgb(255, 174, 164));
+        check.setText("CHECK ROOT PERMISSION");
+        check.setEnabled(true);
+        check.setAlpha(1f);
+    }
+
     public void setChecking() {
         status.setText("Root status: requesting permission…");
         status.setTextColor(GREEN);
@@ -126,6 +135,14 @@ public final class RootAccessOverlay extends FrameLayout {
         v.setTextSize(size);
         v.setTextColor(color);
         return v;
+    }
+
+    private GradientDrawable roundGlass(int color, float radius) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(color);
+        g.setCornerRadius(dp(radius));
+        g.setStroke(dp(1), 0x405E7663);
+        return g;
     }
 
     private GradientDrawable round(int color, float radius) {
