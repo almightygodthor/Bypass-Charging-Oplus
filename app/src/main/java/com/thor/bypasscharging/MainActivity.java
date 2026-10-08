@@ -1,24 +1,233 @@
 package com.thor.bypasscharging;
 
-import android.app.*;import android.os.*;import android.graphics.Color;import android.graphics.drawable.GradientDrawable;import android.view.*;import android.widget.*;import android.content.*;import java.util.Locale;
+import android.app.Activity;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.graphics.Color;
+import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
+import android.view.View;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import java.util.Locale;
 
 public class MainActivity extends Activity {
- private final Handler h=new Handler(Looper.getMainLooper()); TextView state,battery,current,voltage,power,root,plug; Button toggle;
- private TextView tv(String s,float sp){ TextView v=new TextView(this); v.setText(s);v.setTextColor(Color.WHITE);v.setTextSize(sp);v.setGravity(Gravity.CENTER_VERTICAL);v.setPadding(22,12,22,12);return v; }
- private LinearLayout card(){ LinearLayout l=new LinearLayout(this);l.setOrientation(LinearLayout.VERTICAL);l.setPadding(18,14,18,14);GradientDrawable g=new GradientDrawable();g.setColor(Color.rgb(24,35,59));g.setCornerRadius(34);g.setStroke(2,Color.rgb(45,130,235));l.setBackground(g);return l; }
- @Override public void onCreate(Bundle b){super.onCreate(b); getWindow().setStatusBarColor(Color.rgb(7,11,20));getWindow().setNavigationBarColor(Color.rgb(7,11,20));
-  LinearLayout rootLayout=new LinearLayout(this);rootLayout.setOrientation(LinearLayout.VERTICAL);rootLayout.setPadding(22,20,22,22);rootLayout.setBackgroundColor(Color.rgb(7,11,20));
-  TextView title=tv("⚡  OPLUS BYPASS CHARGING",24);title.setTypeface(null,1);rootLayout.addView(title,new LinearLayout.LayoutParams(-1,70));
-  TextView sub=tv("Direct power-path control • Root required",14);sub.setTextColor(Color.rgb(150,190,235));rootLayout.addView(sub,new LinearLayout.LayoutParams(-1,45));
-  LinearLayout status=card(); state=tv("Checking…",30);state.setGravity(Gravity.CENTER);status.addView(state,new LinearLayout.LayoutParams(-1,75)); battery=tv("Battery --",16);battery.setGravity(Gravity.CENTER);status.addView(battery,new LinearLayout.LayoutParams(-1,45)); rootLayout.addView(status,new LinearLayout.LayoutParams(-1,145));
-  LinearLayout row=new LinearLayout(this);row.setPadding(0,18,0,18);row.setWeightSum(2); current=metric("CURRENT");voltage=metric("VOLTAGE");row.addView(current,new LinearLayout.LayoutParams(0,105,1));row.addView(voltage,new LinearLayout.LayoutParams(0,105,1));rootLayout.addView(row);
-  LinearLayout p=card(); power=tv("0.00 W",28);power.setGravity(Gravity.CENTER);p.addView(power,new LinearLayout.LayoutParams(-1,65));TextView pl=tv("LIVE POWER",12);pl.setGravity(Gravity.CENTER);pl.setTextColor(Color.rgb(120,175,230));p.addView(pl,new LinearLayout.LayoutParams(-1,30));rootLayout.addView(p,new LinearLayout.LayoutParams(-1,105));
-  root=tv("Root: checking…",14);plug=tv("Charger: checking…",14);rootLayout.addView(root,new LinearLayout.LayoutParams(-1,45));rootLayout.addView(plug,new LinearLayout.LayoutParams(-1,40));
-  toggle=new Button(this);toggle.setText("TOGGLE BYPASS");toggle.setTextColor(Color.WHITE);toggle.setTextSize(15);toggle.setAllCaps(false);GradientDrawable bg=new GradientDrawable();bg.setColor(Color.rgb(25,118,210));bg.setCornerRadius(50);toggle.setBackground(bg);rootLayout.addView(toggle,new LinearLayout.LayoutParams(-1,62));
-  toggle.setOnClickListener(v->{boolean ok=RootShell.setBypass(!RootShell.isBypassEnabled());refresh();Toast.makeText(this,ok?"Bypass state changed":"Root or OPLUS charging node unavailable",Toast.LENGTH_SHORT).show();});
-  setContentView(rootLayout); h.post(update); }
- private TextView metric(String label){TextView v=tv(label+"\n--",16);v.setGravity(Gravity.CENTER);v.setTextColor(Color.WHITE);GradientDrawable g=new GradientDrawable();g.setColor(Color.rgb(18,29,49));g.setCornerRadius(28);v.setBackground(g);return v;}
- private void refresh(){boolean on=RootShell.isBypassEnabled();state.setText(on?"BYPASS ACTIVE":"CHARGING NORMAL");state.setTextColor(on?Color.rgb(75,180,255):Color.WHITE);toggle.setText(on?"DISABLE BYPASS":"ENABLE BYPASS");root.setText("Root: "+(RootShell.isRootAvailable()?"Granted ✓":"Unavailable ✕"));plug.setText("Charger: "+(PowerReader.plugged()?"Connected ✓":"Disconnected"));battery.setText("Battery "+PowerReader.battery());current.setText(String.format(Locale.US,"CURRENT\n%.2f A",PowerReader.currentA()));voltage.setText(String.format(Locale.US,"VOLTAGE\n%.2f V",PowerReader.voltageV()));power.setText(String.format(Locale.US,"%.2f W",PowerReader.powerW()));}
- private final Runnable update= new Runnable(){public void run(){refresh();h.postDelayed(this,1000);}};
- @Override protected void onDestroy(){h.removeCallbacks(update);super.onDestroy();}
+    private final Handler handler = new Handler(Looper.getMainLooper());
+
+    private TextView state, battery, current, voltage, power, root, plug, node;
+    private Button toggle;
+
+    private int dp(float v) {
+        return Math.round(v * getResources().getDisplayMetrics().density);
+    }
+
+    private TextView text(String value, float sp) {
+        TextView v = new TextView(this);
+        v.setText(value);
+        v.setTextColor(Color.WHITE);
+        v.setTextSize(sp);
+        v.setFontFeatureSettings("kern");
+        return v;
+    }
+
+    private GradientDrawable bg(int fill, int stroke, float radius, int strokeWidth) {
+        GradientDrawable g = new GradientDrawable();
+        g.setColor(fill);
+        g.setCornerRadius(dp(radius));
+        if (strokeWidth > 0) g.setStroke(dp(strokeWidth), stroke);
+        return g;
+    }
+
+    private LinearLayout card() {
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setPadding(dp(18), dp(16), dp(18), dp(16));
+        c.setBackground(bg(Color.rgb(18, 29, 51), Color.rgb(55, 145, 255), 24, 1));
+        return c;
+    }
+
+    private TextView caption(String s) {
+        TextView v = text(s, 11);
+        v.setTextColor(Color.rgb(135, 184, 235));
+        v.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        v.setLetterSpacing(0.08f);
+        return v;
+    }
+
+    private LinearLayout metric(String label, TextView[] holder) {
+        LinearLayout c = new LinearLayout(this);
+        c.setOrientation(LinearLayout.VERTICAL);
+        c.setGravity(Gravity.CENTER);
+        c.setPadding(dp(14), dp(14), dp(14), dp(14));
+        c.setBackground(bg(Color.rgb(14, 25, 45), Color.rgb(31, 71, 125), 22, 1));
+
+        TextView l = caption(label);
+        l.setGravity(Gravity.CENTER);
+        TextView value = text("--", 22);
+        value.setGravity(Gravity.CENTER);
+        value.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        c.addView(l, new LinearLayout.LayoutParams(-1, dp(22)));
+        c.addView(value, new LinearLayout.LayoutParams(-1, dp(40)));
+        holder[0] = value;
+        return c;
+    }
+
+    @Override
+    public void onCreate(Bundle stateBundle) {
+        super.onCreate(stateBundle);
+
+        getWindow().setStatusBarColor(Color.rgb(5, 9, 17));
+        getWindow().setNavigationBarColor(Color.rgb(5, 9, 17));
+        getWindow().getDecorView().setSystemUiVisibility(0);
+
+        LinearLayout content = new LinearLayout(this);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(dp(18), dp(18), dp(18), dp(28));
+        content.setBackgroundColor(Color.rgb(5, 9, 17));
+
+        TextView title = text("OPLUS BYPASS", 28);
+        title.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        title.setTextColor(Color.rgb(236, 247, 255));
+        title.setGravity(Gravity.CENTER_VERTICAL);
+        content.addView(title, new LinearLayout.LayoutParams(-1, dp(46)));
+
+        TextView subtitle = text("Vivid Glass • live charging telemetry", 13);
+        subtitle.setTextColor(Color.rgb(123, 177, 229));
+        content.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(30)));
+
+        LinearLayout hero = card();
+        hero.setPadding(dp(20), dp(18), dp(20), dp(18));
+
+        TextView heroLabel = caption("CHARGING CONTROL");
+        heroLabel.setGravity(Gravity.CENTER);
+        hero.addView(heroLabel, new LinearLayout.LayoutParams(-1, dp(24)));
+
+        this.state = text("CHECKING…", 25);
+        this.state.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        this.state.setGravity(Gravity.CENTER);
+        hero.addView(this.state, new LinearLayout.LayoutParams(-1, dp(42)));
+
+        this.battery = text("Battery --", 14);
+        this.battery.setTextColor(Color.rgb(177, 208, 238));
+        this.battery.setGravity(Gravity.CENTER);
+        hero.addView(this.battery, new LinearLayout.LayoutParams(-1, dp(28)));
+
+        content.addView(hero, new LinearLayout.LayoutParams(-1, dp(145)));
+
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(0, dp(12), 0, dp(12));
+
+        TextView[] a = new TextView[1];
+        TextView[] b = new TextView[1];
+        row.addView(metric("CURRENT", a), new LinearLayout.LayoutParams(0, dp(92), 1));
+        LinearLayout spacer = new LinearLayout(this);
+        row.addView(spacer, new LinearLayout.LayoutParams(dp(10), 1));
+        row.addView(metric("VOLTAGE", b), new LinearLayout.LayoutParams(0, dp(92), 1));
+        current = a[0];
+        voltage = b[0];
+        content.addView(row);
+
+        LinearLayout powerCard = card();
+        powerCard.setGravity(Gravity.CENTER);
+        TextView powerLabel = caption("LIVE POWER");
+        powerLabel.setGravity(Gravity.CENTER);
+        powerCard.addView(powerLabel, new LinearLayout.LayoutParams(-1, dp(22)));
+        power = text("0.00 W", 30);
+        power.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        power.setGravity(Gravity.CENTER);
+        power.setTextColor(Color.rgb(83, 183, 255));
+        powerCard.addView(power, new LinearLayout.LayoutParams(-1, dp(48)));
+        content.addView(powerCard, new LinearLayout.LayoutParams(-1, dp(98)));
+
+        LinearLayout info = card();
+        info.setPadding(dp(18), dp(12), dp(18), dp(12));
+
+        root = text("Root: checking…", 13);
+        root.setTextColor(Color.rgb(205, 225, 245));
+        plug = text("Charger: checking…", 13);
+        plug.setTextColor(Color.rgb(205, 225, 245));
+        node = text("OPLUS node: checking…", 13);
+        node.setTextColor(Color.rgb(135, 184, 235));
+
+        info.addView(root, new LinearLayout.LayoutParams(-1, dp(28)));
+        info.addView(plug, new LinearLayout.LayoutParams(-1, dp(28)));
+        info.addView(node, new LinearLayout.LayoutParams(-1, dp(28)));
+        content.addView(info, new LinearLayout.LayoutParams(-1, dp(100)));
+
+        toggle = new Button(this);
+        toggle.setText("ENABLE BYPASS");
+        toggle.setTextSize(15);
+        toggle.setTextColor(Color.WHITE);
+        toggle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        toggle.setAllCaps(false);
+        toggle.setGravity(Gravity.CENTER);
+        toggle.setBackground(bg(Color.rgb(28, 126, 224), Color.rgb(75, 176, 255), 20, 1));
+        toggle.setPadding(0, 0, 0, 0);
+        LinearLayout.LayoutParams toggleLp = new LinearLayout.LayoutParams(-1, dp(58));
+        toggleLp.topMargin = dp(14);
+        content.addView(toggle, toggleLp);
+
+        TextView note = text("Requires root • OPLUS charging node control", 11);
+        note.setTextColor(Color.rgb(94, 121, 151));
+        note.setGravity(Gravity.CENTER);
+        LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, dp(30));
+        noteLp.topMargin = dp(6);
+        content.addView(note, noteLp);
+
+        ScrollView scroll = new ScrollView(this);
+        scroll.setFillViewport(true);
+        scroll.setBackgroundColor(Color.rgb(5, 9, 17));
+        scroll.addView(content);
+        setContentView(scroll);
+
+        toggle.setOnClickListener(v -> {
+            boolean target = !RootShell.isBypassEnabled();
+            boolean ok = RootShell.setBypass(target);
+            refresh();
+            Toast.makeText(this,
+                    ok ? (target ? "Bypass charging enabled" : "Normal charging restored")
+                       : "Root or OPLUS charging node unavailable",
+                    Toast.LENGTH_SHORT).show();
+        });
+
+        handler.post(update);
+    }
+
+    private void refresh() {
+        boolean bypass = RootShell.isBypassEnabled();
+        boolean rooted = RootShell.isRootAvailable();
+        boolean plugged = PowerReader.plugged();
+
+        state.setText(bypass ? "BYPASS ACTIVE" : "CHARGING NORMAL");
+        state.setTextColor(bypass ? Color.rgb(75, 190, 255) : Color.WHITE);
+        toggle.setText(bypass ? "DISABLE BYPASS" : "ENABLE BYPASS");
+
+        root.setText("Root: " + (rooted ? "Granted ✓" : "Unavailable ✕"));
+        plug.setText("Charger: " + (plugged ? "Connected ✓" : "Disconnected"));
+        node.setText("OPLUS node: " + (bypass ? "Bypass enabled" : "Normal charging"));
+
+        battery.setText("Battery " + PowerReader.battery());
+        current.setText(String.format(Locale.US, "%.2f A", PowerReader.currentA()));
+        voltage.setText(String.format(Locale.US, "%.2f V", PowerReader.voltageV()));
+        power.setText(String.format(Locale.US, "%.2f W", PowerReader.powerW()));
+    }
+
+    private final Runnable update = new Runnable() {
+        @Override public void run() {
+            refresh();
+            handler.postDelayed(this, 1000);
+        }
+    };
+
+    @Override protected void onDestroy() {
+        handler.removeCallbacks(update);
+        super.onDestroy();
+    }
 }
