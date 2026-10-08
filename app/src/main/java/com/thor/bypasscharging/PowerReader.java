@@ -18,6 +18,8 @@ public final class PowerReader {
     private static final String MASTER_CHARGER = "/sys/class/power_supply/mtk-master-charger/";
     private static final String CHARGER_IC = "/sys/class/power_supply/11280000.i2c:mt6375@34:chg/";
     private static final String AC = "/sys/class/power_supply/ac/";
+    private static final String OPLUS_BATTERY = "/sys/class/oplus_chg/battery/";
+    private static final String FCC_PATH = OPLUS_BATTERY + "battery_fcc";
 
     private static String currentPath;
     private static String voltagePath;
@@ -82,11 +84,12 @@ public final class PowerReader {
         public final boolean plugged;
         public final String charger;
         public final double healthPercent;
+        public final String healthStatus;
         public final int designCapacityMah;
         public final GtNeo3Variant.Type variant;
 
         Snapshot(String battery, double currentA, double rawCurrentA, boolean charging, double rawVoltageV, double temperatureC,
-                 boolean plugged, String charger, double healthPercent,
+                 boolean plugged, String charger, double healthPercent, String healthStatus,
                  int designCapacityMah, GtNeo3Variant.Type variant) {
             this.battery = battery;
             this.currentA = currentA;
@@ -100,6 +103,7 @@ public final class PowerReader {
             this.plugged = plugged;
             this.charger = charger;
             this.healthPercent = healthPercent;
+            this.healthStatus = healthStatus;
             this.designCapacityMah = designCapacityMah;
             this.variant = variant;
         }
@@ -386,28 +390,20 @@ public final class PowerReader {
         return "Battery";
     }
 
-    private static double readHealthPercent() {
-        if (healthPath == null || healthPath.isEmpty()) {
-            healthPath = firstReadable(BATTERY + "health");
-        }
+    private static double readHealthPercent(int designCapacityMah) {
+        long fcc = number(FCC_PATH);
+        if (fcc == Long.MIN_VALUE || fcc <= 0 || designCapacityMah <= 0) return 0;
 
-        // The device exposes charge_full == charge_full_design in the dump.
-        // Prefer the capacity/design ratio over the textual "Good" health state.
-        healthFullPath = firstReadable(BATTERY + "charge_full");
-        healthDesignPath = firstReadable(BATTERY + "charge_full_design");
+        // OPLUS battery_fcc is the remaining full-charge capacity in mAh on
+        // this vendor path. Health is FCC/design capacity expressed as %.
+        return Math.max(0, Math.min(100, (fcc * 100.0) / designCapacityMah));
+    }
 
-        long full = number(healthFullPath);
-        long design = number(healthDesignPath);
-        if (full > 0 && design > 0) {
-            return Math.max(0, Math.min(100, full * 100.0 / design));
-        }
-
-        if (!healthPath.isEmpty()) {
-            long raw = number(healthPath);
-            if (raw > 0 && raw <= 100) return raw;
-        }
-
-        return 0;
+    private static String healthStatus(double percent) {
+        if (percent <= 0) return "UNKNOWN";
+        if (percent >= 90) return "GOOD";
+        if (percent >= 70) return "BAD";
+        return "WORST";
     }
 
     public static Snapshot snapshot(Context context) {
@@ -465,6 +461,8 @@ public final class PowerReader {
 
         int designCapacityMah = GtNeo3Variant.readDesignCapacityMah();
         GtNeo3Variant.Type variant = GtNeo3Variant.detect();
+        double healthPercent = readHealthPercent(designCapacityMah);
+        String healthStatus = healthStatus(healthPercent);
 
         return new Snapshot(
                 battery,
@@ -475,7 +473,8 @@ public final class PowerReader {
                 temperatureC,
                 plugged,
                 charger,
-                readHealthPercent(),
+                healthPercent,
+                healthStatus,
                 designCapacityMah,
                 variant
         );
