@@ -9,6 +9,9 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 
 public final class PowerReader {
+    private static String currentPath;
+    private static String voltagePath;
+
     public static final class Snapshot {
         public final String battery;
         public final double currentA;
@@ -36,12 +39,32 @@ public final class PowerReader {
         }
     }
 
-    private static long sysfsNumber(String path) {
+    private static long number(String path) {
         try {
             return Long.parseLong(read(path));
         } catch (Exception e) {
             return Long.MIN_VALUE;
         }
+    }
+
+    private static String resolve(String file, String cached) {
+        if (cached != null && !cached.isEmpty()) return cached;
+
+        String[] common = {
+                "/sys/class/power_supply/battery/" + file,
+                "/sys/class/power_supply/bms/" + file,
+                "/sys/class/power_supply/main/" + file,
+                "/sys/class/power_supply/usb/" + file
+        };
+
+        for (String path : common) {
+            if (number(path) != Long.MIN_VALUE) return path;
+        }
+
+        String found = RootShell.run(
+                "find /sys/class/power_supply -maxdepth 2 -type f -name '" +
+                file + "' 2>/dev/null | head -1");
+        return found.trim();
     }
 
     public static Snapshot snapshot(Context context) {
@@ -61,11 +84,15 @@ public final class PowerReader {
                 : Long.MIN_VALUE;
 
         if (ua == Long.MIN_VALUE || ua == 0) {
-            ua = sysfsNumber("/sys/class/power_supply/battery/current_now");
+            if (currentPath == null) currentPath = resolve("current_now", null);
+            ua = number(currentPath);
         }
 
-        long uv = voltageMv > 0 ? voltageMv * 1000L
-                : sysfsNumber("/sys/class/power_supply/battery/voltage_now");
+        long uv = voltageMv > 0 ? voltageMv * 1000L : Long.MIN_VALUE;
+        if (uv == Long.MIN_VALUE || uv == 0) {
+            if (voltagePath == null) voltagePath = resolve("voltage_now", null);
+            uv = number(voltagePath);
+        }
 
         double currentA = ua == Long.MIN_VALUE ? 0 : Math.abs(ua) / 1_000_000.0;
         double voltageV = uv == Long.MIN_VALUE ? 0 : uv / 1_000_000.0;
