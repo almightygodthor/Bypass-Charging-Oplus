@@ -50,13 +50,14 @@ public final class RootAccessOverlay extends FrameLayout {
         card.addView(title, titleLp);
 
         TextView body = text(
-                "Bypass charging needs superuser access to control the OPLUS charging node.\n\n"
-                        + "Tap below to check your root permission. If your root manager shows a prompt, allow access and check again.",
+                "Superuser access is required to use this page and control bypass charging.\n\n"
+                        + "Without root permission, you won’t be able to reach the dashboard.",
                 13, MUTED);
         body.setGravity(Gravity.CENTER);
         body.setLineSpacing(dp(2), 1.08f);
         LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(-1, dp(108));
         bodyLp.topMargin = dp(8);
+        body.setPadding(0, 0, 0, dp(2));
         card.addView(body, bodyLp);
 
         status = text("Root status: not checked", 12, MUTED);
