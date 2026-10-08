@@ -38,7 +38,7 @@ Power is calculated from current × voltage. Hardware/vendor implementations can
 
 ## Build
 
-The repository uses Android Gradle Plugin **9.4.0**, Gradle **9.6.0**, JDK 17 and Android API 37. These versions match the current Android build-tool compatibility documentation. citeturn1search3turn1search8
+The repository uses Android Gradle Plugin **9.4.0**, Gradle **9.6.0**, JDK 17 and Android API 37.
 
 GitHub Actions builds the debug APK automatically on pushes to `main` and can also be started manually.
 
