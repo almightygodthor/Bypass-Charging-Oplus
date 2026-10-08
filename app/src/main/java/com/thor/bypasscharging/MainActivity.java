@@ -190,15 +190,16 @@ public class MainActivity extends Activity {
             boolean current=root&&RootShell.isBypassEnabled();
             boolean target=!current;
             boolean ok=root&&RootShell.setBypass(target);
+            PowerReader.Snapshot s=PowerReader.snapshot(this);
             main.post(()->{
-                busy=false; toggle.setEnabled(true); refresh();
+                busy=false; toggle.setEnabled(true);
+                refresh(s,target,root);
                 Toast.makeText(this,ok?(target?"Bypass enabled":"Normal charging restored"):"Unable to change bypass state",Toast.LENGTH_SHORT).show();
             });
         });
     }
 
-    private void refresh(){
-        PowerReader.Snapshot s=PowerReader.snapshot(this);
+    private void refresh(PowerReader.Snapshot s, boolean bypass, boolean rooted){
         float level=parseLevel(s.battery);
         gauge.setValues(level,s.powerW,s.plugged);
 
@@ -210,15 +211,17 @@ public class MainActivity extends Activity {
                 Math.min(s.powerW/30.0,.95),GREEN);
         tempCard.setData("TEMPERATURE",String.format(Locale.US,"%.1f°C",s.temperatureC),"♨",
                 Math.min(s.temperatureC/50.0,.95),0xFFFFA7A0);
-        healthCard.setData("HEALTH",healthText(), "♥", .65, 0xFFFFB29F);
-        pluggedCard.setData("PLUGGED",s.charger,"▣",s.plugged?.8:.2,TEXT);
+        healthCard.setData("HEALTH",healthText(),"♥",.65,0xFFFFB29F);
+        pluggedCard.setData("PLUGGED",s.charger,"▣",s.plugged ? .8 : .2,TEXT);
 
         monitorTitle.setText(s.plugged?"Monitoring Active":"Monitoring Ready");
         monitorText.setText(s.plugged?"Live charging stats and bypass state":"Connect a charger for live input telemetry");
         monitorAction.setText(s.plugged?"ACTIVE":"IDLE");
-        toggle.setText(RootShell.isBypassEnabled()?"Disable bypass":"Enable bypass");
-        stateTitle.setText(RootShell.isBypassEnabled()?"BYPASS ACTIVE":"CHARGING NORMAL");
-        stateTitle.setTextColor(RootShell.isBypassEnabled()?GREEN:TEXT);
+
+        toggle.setText(bypass?"Disable bypass":"Enable bypass");
+        stateTitle.setText(bypass?"BYPASS ACTIVE":"CHARGING NORMAL");
+        stateTitle.setTextColor(bypass?GREEN:TEXT);
+        stateSub.setText(rooted ? "Root access granted" : "Root access required");
     }
 
     private float parseLevel(String s){
@@ -241,8 +244,10 @@ public class MainActivity extends Activity {
         @Override public void run(){
             if(!isFinishing()){
                 worker.execute(()->{
-                    boolean bypass=RootShell.isBypassEnabled();
-                    main.post(()->{refresh(); stateTitle.setText(bypass?"BYPASS ACTIVE":"CHARGING NORMAL");});
+                    PowerReader.Snapshot s=PowerReader.snapshot(MainActivity.this);
+                    boolean root=RootShell.isRootAvailable();
+                    boolean bypass=root&&RootShell.isBypassEnabled();
+                    main.post(()->refresh(s,bypass,root));
                 });
                 main.postDelayed(this,1000);
             }
