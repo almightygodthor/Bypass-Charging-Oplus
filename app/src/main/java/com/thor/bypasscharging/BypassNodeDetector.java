@@ -28,7 +28,7 @@ public final class BypassNodeDetector {
 
     public static String find() {
         String current = cached;
-        if (current != null && !current.isEmpty()) return current;
+        if (current != null && !current.isEmpty() && RootShell.exists(current)) return current;
 
         for (String path : EXACT) {
             if (isBinaryNode(path)) {
@@ -37,16 +37,16 @@ public final class BypassNodeDetector {
             }
         }
 
-        StringBuilder names = new StringBuilder();
+        StringBuilder regex = new StringBuilder();
         for (String name : NAMES) {
-            if (names.length() > 0) names.append(" -o ");
-            names.append("-name '").append(name).append("'");
+            if (regex.length() > 0) regex.append("|");
+            regex.append(name);
         }
 
         String output = RootShell.run(
                 "find /sys/devices/virtual/oplus_chg /sys/class/power_supply " +
-                "/sys/devices/platform -type f \(" + names +
-                "\) 2>/dev/null | head -100");
+                "/sys/devices/platform -type f 2>/dev/null | " +
+                "grep -E '/(" + regex + ")$' | head -100");
 
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
         for (String line : output.split("\\n")) {
@@ -60,6 +60,7 @@ public final class BypassNodeDetector {
                 return path;
             }
         }
+
         return "";
     }
 
