@@ -273,7 +273,7 @@ public class MainActivity extends Activity {
         }
     }
 
-    private void animateDashboard(View content) {
+    private void animateDashboard(LinearLayout content) {
         for (int i = 0; i < content.getChildCount(); i++) {
             View child = content.getChildAt(i);
             child.setAlpha(0f);
