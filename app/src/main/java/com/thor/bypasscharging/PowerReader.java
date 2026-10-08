@@ -358,6 +358,8 @@ public final class PowerReader {
 
     private static String readChargerType() {
         String type = read(CHARGER_IC + "type");
+        if ("USB_DCP".equalsIgnoreCase(type) || "DCP".equalsIgnoreCase(type)) return "AC";
+        if ("USB_SDP".equalsIgnoreCase(type) || "SDP".equalsIgnoreCase(type)) return "USB";
         if (!type.isEmpty() && !"Unknown".equalsIgnoreCase(type)) return type;
 
         if (isOnline(AC + "online")) return "AC";
