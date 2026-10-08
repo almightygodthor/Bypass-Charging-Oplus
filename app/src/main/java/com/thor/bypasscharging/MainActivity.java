@@ -205,7 +205,7 @@ public class MainActivity extends Activity {
     private void toggleBypass() {
         if (busy) return;
         busy = true;
-        monitorAction.setEnabled(false);
+        bypassSwitch.setEnabled(false);
         worker.execute(() -> {
             boolean root = RootShell.isRootAvailable();
             boolean current = root && RootShell.isBypassEnabled();
@@ -215,7 +215,7 @@ public class MainActivity extends Activity {
             PowerReader.Snapshot s = PowerReader.snapshot(this);
             main.post(() -> {
                 busy = false;
-                monitorAction.setEnabled(true);
+                bypassSwitch.setEnabled(true);
                 refresh(s, target, root);
                 Toast.makeText(this,
                         ok ? (target ? "Bypass enabled" : "Normal charging restored") : "Unable to change bypass state",
