@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.animation.ValueAnimator;
+import android.view.animation.PathInterpolator;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -15,6 +17,7 @@ public final class ChargingGaugeView extends View {
     private float level;
     private double power;
     private boolean charging;
+    private ValueAnimator animator;
 
     private static final int TRACK = 0xFF292E2A;
     private static final int GREEN = 0xFF9DD49D;
@@ -27,10 +30,25 @@ public final class ChargingGaugeView extends View {
     private void init() { paint.setStrokeCap(Paint.Cap.ROUND); }
 
     public void setValues(float level, double power, boolean charging) {
-        this.level = Math.max(0, Math.min(100, level));
-        this.power = power;
+        float targetLevel = Math.max(0, Math.min(100, level));
+        double targetPower = power;
+        float startLevel = this.level;
+        double startPower = this.power;
+
+        if (animator != null) animator.cancel();
+
         this.charging = charging;
-        invalidate();
+        animator = ValueAnimator.ofFloat(0f, 1f);
+        animator.setDuration(620);
+        animator.setInterpolator(new PathInterpolator(.16f, 1f, .3f, 1f));
+        animator.addUpdateListener(a -> {
+            float t = (float) a.getAnimatedValue();
+            float eased = 1f - (1f - t) * (1f - t);
+            this.level = startLevel + (targetLevel - startLevel) * eased;
+            this.power = startPower + (targetPower - startPower) * eased;
+            postInvalidateOnAnimation();
+        });
+        animator.start();
     }
 
     @Override protected void onDraw(Canvas c) {
