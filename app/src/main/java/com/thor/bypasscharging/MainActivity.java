@@ -8,6 +8,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -241,6 +242,22 @@ public class MainActivity extends Activity {
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         scroll.setOverScrollMode(ScrollView.OVER_SCROLL_NEVER);
+
+        // Android 15+ enforces edge-to-edge for targetSdk 35+.
+        // Keep the actual app content out of the status/navigation bars.
+        scroll.setOnApplyWindowInsetsListener((view, insets) -> {
+            android.graphics.Insets bars =
+                    insets.getInsets(WindowInsets.Type.systemBars());
+
+            content.setPadding(
+                    dp(18) + bars.left,
+                    dp(14) + bars.top,
+                    dp(18) + bars.right,
+                    dp(30) + bars.bottom
+            );
+            return insets;
+        });
+
         scroll.addView(content);
         setContentView(scroll);
 
