@@ -121,15 +121,19 @@ public final class PowerReader {
         long rawCurrent = bm != null
                 ? bm.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_NOW)
                 : Long.MIN_VALUE;
+        boolean frameworkCurrent = rawCurrent != Long.MIN_VALUE && rawCurrent != 0;
 
-        if (rawCurrent == Long.MIN_VALUE || rawCurrent == 0) {
+        if (!frameworkCurrent) {
             long average = bm != null
                     ? bm.getLongProperty(BatteryManager.BATTERY_PROPERTY_CURRENT_AVERAGE)
                     : Long.MIN_VALUE;
-            if (average != Long.MIN_VALUE && average != 0) rawCurrent = average;
+            if (average != Long.MIN_VALUE && average != 0) {
+                rawCurrent = average;
+                frameworkCurrent = true;
+            }
         }
 
-        if (rawCurrent == Long.MIN_VALUE || rawCurrent == 0) {
+        if (!frameworkCurrent) {
             if (currentPath == null) {
                 currentPath = resolve(
                         "input_current_now", "current_now", "current_avg",
@@ -138,13 +142,10 @@ public final class PowerReader {
             rawCurrent = number(currentPath);
         }
 
-        // BatteryManager.CURRENT_NOW / CURRENT_AVERAGE are defined in µA.
-        double currentA = (rawCurrent == Long.MIN_VALUE || rawCurrent == 0)
-                ? 0 : Math.abs(rawCurrent) / 1_000_000.0;
-
-        if (currentA == 0) {
-            currentA = currentFromSysfs(number(currentPath));
-        }
+        // BatteryManager CURRENT_NOW/CURRENT_AVERAGE are µA.
+        double currentA = frameworkCurrent
+                ? Math.abs(rawCurrent) / 1_000_000.0
+                : currentFromSysfs(rawCurrent);
 
         int uvFromIntent = voltageMv > 0 ? voltageMv * 1000 : 0;
         double voltageV = voltageFromRaw(uvFromIntent);
