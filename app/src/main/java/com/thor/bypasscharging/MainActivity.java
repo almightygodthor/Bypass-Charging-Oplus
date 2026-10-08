@@ -19,6 +19,7 @@ import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.PopupMenu;
 import android.widget.Toast;
 
 import java.util.Locale;
@@ -107,8 +108,21 @@ public class MainActivity extends Activity {
 
         TextView debug = tv("⋮", 28, MUTED);
         debug.setGravity(Gravity.CENTER);
-        debug.setContentDescription("Open debug log");
-        debug.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
+        debug.setContentDescription("Open app menu");
+        debug.setOnClickListener(v -> {
+            PopupMenu menu = new PopupMenu(this, debug);
+            menu.getMenu().add("About");
+            menu.getMenu().add("Debug Log");
+            menu.setOnMenuItemClickListener(item -> {
+                if ("About".contentEquals(item.getTitle())) {
+                    startActivity(new Intent(this, AboutActivity.class));
+                } else if ("Debug Log".contentEquals(item.getTitle())) {
+                    startActivity(new Intent(this, DebugLogActivity.class));
+                }
+                return true;
+            });
+            menu.show();
+        });
         header.addView(debug, new LinearLayout.LayoutParams(dp(34), dp(48)));
         content.addView(header);
 
