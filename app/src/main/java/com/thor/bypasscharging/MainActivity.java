@@ -153,7 +153,9 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
-        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);\n        scroll.setVerticalScrollBarEnabled(false);\n        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.setVerticalScrollBarEnabled(false);
+        scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOnApplyWindowInsetsListener((view, insets) -> {
             content.setPadding(
                     dp(18) + insets.getSystemWindowInsetLeft(),
