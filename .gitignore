@@ -1,0 +1,9 @@
+# Local Android build files
+.gradle/
+build/
+app/build/
+local.properties
+
+# Signing material — never commit private keys
+*.jks
+*.keystore
