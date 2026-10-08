@@ -136,6 +136,7 @@ public class MainActivity extends Activity {
 
         LinearLayout monText = new LinearLayout(this);
         monText.setOrientation(LinearLayout.VERTICAL);
+        monText.setGravity(Gravity.CENTER_VERTICAL);
         monitorTitle = tv("BYPASS CHARGING", 15, TEXT);
         monitorTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
         monitorTitle.setLetterSpacing(.04f);
@@ -333,9 +334,9 @@ public class MainActivity extends Activity {
 
         voltageCard.setData("VOLTAGE", String.format(Locale.US, "%.2f V", s.voltageV), "ϟ",
                 s.voltageV / 10.0, GREEN, true);
-        currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", s.currentA * 1000), "≈",
+        currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", s.currentA * 1000), "⇆",
                 Math.min(Math.abs(s.currentA) / 5.0, .95), GREEN, true);
-        powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", s.powerW), "▣",
+        powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", s.powerW), "ϟ",
                 Math.min(s.powerW / 30.0, .95), GREEN, true);
         tempCard.setData("TEMPERATURE", String.format(Locale.US, "%.1f°C", s.temperatureC), "♨",
                 Math.min(s.temperatureC / 50.0, .95), 0xFFFFA7A0, true);
@@ -345,7 +346,7 @@ public class MainActivity extends Activity {
                 : healthText();
         healthCard.setData("HEALTH", health, "♥",
                 s.healthPercent > 0 ? s.healthPercent / 100.0 : .65, 0xFFFFB29F, false);
-        pluggedCard.setData("PLUGGED", s.charger, "▣", s.plugged ? .8 : .2, TEXT, false);
+        pluggedCard.setData("PLUGGED", s.charger, "⎔", s.plugged ? .8 : .2, TEXT, false);
 
         subtitleView.setText(GtNeo3Variant.label(s.variant));
         monitorTitle.setText("BYPASS CHARGING");
