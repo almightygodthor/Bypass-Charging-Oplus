@@ -211,7 +211,11 @@ public class MainActivity extends Activity {
                 Math.min(s.powerW/30.0,.95),GREEN);
         tempCard.setData("TEMPERATURE",String.format(Locale.US,"%.1f°C",s.temperatureC),"♨",
                 Math.min(s.temperatureC/50.0,.95),0xFFFFA7A0);
-        healthCard.setData("HEALTH",healthText(),"♥",.65,0xFFFFB29F);
+        String health = s.healthPercent > 0
+                ? String.format(Locale.US, "%.0f%%", s.healthPercent)
+                : healthText();
+        healthCard.setData("HEALTH",health,"♥",
+                s.healthPercent > 0 ? s.healthPercent / 100.0 : .65,0xFFFFB29F);
         pluggedCard.setData("PLUGGED",s.charger,"▣",s.plugged ? .8 : .2,TEXT);
 
         monitorTitle.setText(s.plugged?"Monitoring Active":"Monitoring Ready");
