@@ -347,8 +347,10 @@ public class MainActivity extends Activity {
         String health = s.healthPercent > 0
                 ? String.format(Locale.US, "%.0f%%", s.healthPercent)
                 : healthText();
+        int healthAccent = "GOOD".equals(s.healthStatus) ? GREEN
+                : ("BAD".equals(s.healthStatus) ? 0xFFFFC46B : 0xFFFF8F86);
         healthCard.setData("HEALTH", health, "♥",
-                s.healthPercent > 0 ? s.healthPercent / 100.0 : .65, 0xFFFFB29F, false);
+                s.healthPercent > 0 ? s.healthPercent / 100.0 : .65, healthAccent, false);
         pluggedCard.setData("PLUGGED", s.charger, "⎔", s.plugged ? .8 : .2, TEXT, false);
 
         subtitleView.setText(GtNeo3Variant.label(s.variant));
@@ -360,7 +362,7 @@ public class MainActivity extends Activity {
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
-                "UI update: variant=%s design=%dmAh cells=%d rawVoltage=%.3fV voltage=%.3fV rawCurrent=%.3fA current=%.3fA power=%.3fW temp=%.1fC plugged=%s charging=%s charger=%s bypass=%s root=%s",
+                "UI update: variant=%s design=%dmAh health=%.0f%% healthStatus=%s cells=%d rawVoltage=%.3fV voltage=%.3fV rawCurrent=%.3fA current=%.3fA power=%.3fW temp=%.1fC plugged=%s charging=%s charger=%s bypass=%s root=%s",
                 GtNeo3Variant.label(s.variant), s.designCapacityMah, s.cellCount, s.rawVoltageV, s.voltageV, s.rawCurrentA, s.currentA, s.powerW, s.temperatureC,
                 s.plugged, s.charging, s.charger, bypass, rooted));
     }
