@@ -363,7 +363,7 @@ public class MainActivity extends Activity {
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
                 "UI update: variant=%s design=%dmAh health=%.0f%% healthStatus=%s cells=%d rawVoltage=%.3fV voltage=%.3fV rawCurrent=%.3fA current=%.3fA power=%.3fW temp=%.1fC plugged=%s charging=%s charger=%s bypass=%s root=%s",
-                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.cellCount, s.rawVoltageV, s.voltageV, s.rawCurrentA, s.currentA, s.powerW, s.temperatureC,
+                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.healthPercent, s.healthStatus, s.cellCount, s.rawVoltageV, s.voltageV, s.rawCurrentA, s.currentA, s.powerW, s.temperatureC,
                 s.plugged, s.charging, s.charger, bypass, rooted));
     }
 
