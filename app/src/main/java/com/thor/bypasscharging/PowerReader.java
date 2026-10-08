@@ -31,6 +31,8 @@ public final class PowerReader {
     private static String currentSampleSource = "";
     private static Boolean lastPluggedState;
     private static double lastRawCurrent;
+    private static double smoothedCurrent;
+    private static boolean hasSmoothedCurrent;
 
     private static final String[] CURRENT_NAMES = {
             "current_now",
@@ -70,6 +72,8 @@ public final class PowerReader {
     public static final class Snapshot {
         public final String battery;
         public final double currentA;
+        public final double rawCurrentA;
+        public final boolean charging;
         public final double voltageV;
         public final double rawVoltageV;
         public final int cellCount;
@@ -81,11 +85,13 @@ public final class PowerReader {
         public final int designCapacityMah;
         public final GtNeo3Variant.Type variant;
 
-        Snapshot(String battery, double currentA, double rawVoltageV, double temperatureC,
+        Snapshot(String battery, double currentA, double rawCurrentA, boolean charging, double rawVoltageV, double temperatureC,
                  boolean plugged, String charger, double healthPercent,
                  int designCapacityMah, GtNeo3Variant.Type variant) {
             this.battery = battery;
             this.currentA = currentA;
+            this.rawCurrentA = rawCurrentA;
+            this.charging = charging;
             this.rawVoltageV = rawVoltageV;
             this.cellCount = variant == GtNeo3Variant.Type.UNKNOWN ? 1 : 2;
             this.voltageV = rawVoltageV * this.cellCount;
@@ -220,6 +226,8 @@ public final class PowerReader {
         currentSampleIndex = 0;
         currentSampleSource = "";
         lastRawCurrent = 0;
+        smoothedCurrent = 0;
+        hasSmoothedCurrent = false;
     }
 
     private static void addCurrentSample(double current, String source, boolean plugged) {
@@ -245,22 +253,16 @@ public final class PowerReader {
     }
 
     private static double averagedCurrent(double fallback) {
-        if (currentSampleCount < 5) return fallback;
+        if (currentSampleCount == 0) return fallback;
 
-        List<Double> values = new ArrayList<>(currentSampleCount);
-        for (int i = 0; i < currentSampleCount; i++) values.add(currentSamples[i]);
+        int count = Math.min(currentSampleCount, 5);
+        List<Double> values = new ArrayList<>(count);
+        int start = (currentSampleIndex - count + currentSamples.length) % currentSamples.length;
+        for (int i = 0; i < count; i++) {
+            values.add(currentSamples[(start + i) % currentSamples.length]);
+        }
         Collections.sort(values);
-
-        int trim = currentSampleCount >= 20
-                ? Math.min(10, currentSampleCount / 5)
-                : 0;
-        int from = trim;
-        int to = values.size() - trim;
-        if (from >= to) return fallback;
-
-        double sum = 0;
-        for (int i = from; i < to; i++) sum += values.get(i);
-        return sum / (to - from);
+        return values.get(values.size() / 2);
     }
 
     private static double readBatteryManagerCurrent(BatteryManager bm) {
@@ -421,18 +423,29 @@ public final class PowerReader {
                 status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL;
 
-        double currentA = readBatteryCurrent();
+        double rawCurrentA = readBatteryCurrent();
 
-        // This MT6895/MT6375 battery node reports negative current during
-        // charging. Normalize only for a genuinely plugged + charging state.
-        boolean charging = plugged &&
-                (status == BatteryManager.BATTERY_STATUS_CHARGING ||
-                 "Charging".equalsIgnoreCase(read(BATTERY + "status")));
-        if (charging && currentA < 0) currentA = -currentA;
+        // Keep cable presence separate from battery charge state. Bypass
+        // charging can leave the charger connected while the battery is
+        // discharging, so "plugged" must never be treated as "charging".
+        boolean charging = status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                status == BatteryManager.BATTERY_STATUS_FULL ||
+                "Charging".equalsIgnoreCase(read(BATTERY + "status"));
+        if (charging && rawCurrentA < 0) rawCurrentA = -rawCurrentA;
 
         String source = currentPath;
-        addCurrentSample(currentA, source, plugged);
-        currentA = averagedCurrent(currentA);
+        addCurrentSample(rawCurrentA, source, plugged);
+        double sampledCurrent = averagedCurrent(rawCurrentA);
+
+        if (!hasSmoothedCurrent || lastPluggedState == null || lastPluggedState != plugged) {
+            smoothedCurrent = sampledCurrent;
+            hasSmoothedCurrent = true;
+        } else {
+            // Responsive live smoothing: damp spikes without introducing the
+            // long 20-50 second lag of the old rolling average.
+            smoothedCurrent += (sampledCurrent - smoothedCurrent) * 0.58;
+        }
+        double currentA = smoothedCurrent;
 
         double voltageV = readBatteryVoltage();
         double temperatureC = readTemperature(batteryIntent);
@@ -450,6 +463,8 @@ public final class PowerReader {
         return new Snapshot(
                 battery,
                 currentA,
+                rawCurrentA,
+                charging,
                 voltageV,
                 temperatureC,
                 plugged,
