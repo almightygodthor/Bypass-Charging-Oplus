@@ -1,6 +1,42 @@
 plugins { id 'com.android.application' }
 
-android { namespace 'com.thor.bypasscharging'; compileSdk 36
-    defaultConfig { applicationId 'com.thor.bypasscharging'; minSdk 29; targetSdk 36; versionCode 2; versionName '2.0.0' }
-    buildTypes { release { minifyEnabled false; proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro' } }
+def runNumber = System.getenv('GITHUB_RUN_NUMBER')
+def betaVersionCode = runNumber ? 2000000 + runNumber.toInteger() : 2
+def betaVersionName = runNumber ? '2.0.0-beta-' + runNumber : '2.0.0'
+
+def signingStore = System.getenv('ANDROID_SIGNING_KEYSTORE')
+def signingStorePassword = System.getenv('ANDROID_SIGNING_STORE_PASSWORD')
+def signingAlias = System.getenv('ANDROID_SIGNING_KEY_ALIAS')
+def signingKeyPassword = System.getenv('ANDROID_SIGNING_KEY_PASSWORD')
+
+android {
+    namespace 'com.thor.bypasscharging'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'com.thor.bypasscharging'
+        minSdk 29
+        targetSdk 36
+        versionCode betaVersionCode
+        versionName betaVersionName
+    }
+
+    signingConfigs {
+        release {
+            if (signingStore) {
+                storeFile file(signingStore)
+                storePassword signingStorePassword
+                keyAlias signingAlias
+                keyPassword signingKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
 }
