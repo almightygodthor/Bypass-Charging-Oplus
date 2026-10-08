@@ -14,6 +14,11 @@ import java.util.List;
 import java.util.Locale;
 
 public final class PowerReader {
+    private static final String BATTERY = "/sys/class/power_supply/battery/";
+    private static final String MASTER_CHARGER = "/sys/class/power_supply/mtk-master-charger/";
+    private static final String CHARGER_IC = "/sys/class/power_supply/11280000.i2c:mt6375@34:chg/";
+    private static final String AC = "/sys/class/power_supply/ac/";
+
     private static String currentPath;
     private static String voltagePath;
     private static String healthPath;
@@ -28,19 +33,19 @@ public final class PowerReader {
     private static double lastRawCurrent;
 
     private static final String[] CURRENT_NAMES = {
+            "current_now",
+            "current_avg",
             "BatteryAverageCurrent",
             "batt_current_now",
             "batt_current",
-            "current_now",
-            "current_avg",
             "charger_current",
             "charge_rate",
             "input_current_now"
     };
 
     private static final String[] VOLTAGE_NAMES = {
-            "BatterySenseVoltage",
             "voltage_now",
+            "BatterySenseVoltage",
             "voltage_mv",
             "battery_voltage"
     };
@@ -91,31 +96,45 @@ public final class PowerReader {
         if (path == null || path.isEmpty()) return "";
         try (BufferedReader r = new BufferedReader(new FileReader(path))) {
             String s = r.readLine();
-            return s == null ? "" : s.trim();
+            if (s != null && !s.trim().isEmpty()) return s.trim();
         } catch (Exception ignored) {
-            return RootShell.read(path);
         }
+        return RootShell.read(path);
     }
 
     private static long number(String path) {
         if (path == null || path.isEmpty()) return Long.MIN_VALUE;
         try {
-            File f = new File(path);
-            if (!f.isFile()) return Long.MIN_VALUE;
-            return Long.parseLong(read(path));
+            String value = read(path);
+            if (value.isEmpty()) return Long.MIN_VALUE;
+            return Long.parseLong(value.trim());
         } catch (Exception e) {
             return Long.MIN_VALUE;
         }
     }
 
+    private static boolean isOnline(String path) {
+        long value = number(path);
+        return value > 0;
+    }
+
+    private static String firstReadable(String... paths) {
+        for (String path : paths) {
+            if (number(path) != Long.MIN_VALUE) return path;
+        }
+        return "";
+    }
+
     private static String resolveNonZero(String... names) {
         String[] roots = {
-                "/sys/class/power_supply/battery/",
+                BATTERY,
                 "/sys/class/power_supply/Battery/",
                 "/sys/class/power_supply/bms/",
                 "/sys/class/power_supply/main/",
+                MASTER_CHARGER,
+                CHARGER_IC,
                 "/sys/class/power_supply/usb/",
-                "/sys/class/power_supply/ac/",
+                AC,
                 "/sys/class/power_supply/charger/"
         };
 
@@ -144,23 +163,20 @@ public final class PowerReader {
 
     private static double currentFromRaw(long raw, String path) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
-        String name = new File(path).getName();
+        String name = new File(path == null ? "" : path).getName();
         double magnitude = Math.abs((double) raw);
 
-        // Legacy MediaTek battery-current interfaces report signed mA.
         if ("BatteryAverageCurrent".equals(name) ||
                 "batt_current".equals(name) ||
                 "batt_current_now".equals(name)) {
             return raw / 1000.0;
         }
 
-        // Standard power_supply current interfaces report signed uA.
         if ("current_now".equals(name) || "current_avg".equals(name) ||
-                "current_max".equals(name) || "input_current_now".equals(name)) {
+                "input_current_now".equals(name)) {
             return raw / 1_000_000.0;
         }
 
-        // Vendor nodes vary; preserve the sign while inferring a likely scale.
         if (magnitude >= 100_000) return raw / 1_000_000.0;
         if (magnitude >= 100) return raw / 1_000.0;
         return raw;
@@ -170,7 +186,14 @@ public final class PowerReader {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
         double v = Math.abs((double) raw);
         String name = new File(path == null ? "" : path).getName();
-        if ("BatterySenseVoltage".equals(name) || "voltage_mv".equals(name)) return v / 1000.0;
+
+        if ("voltage_now".equals(name) || "voltage_mv".equals(name) ||
+                "BatterySenseVoltage".equals(name) || "battery_voltage".equals(name)) {
+            if (v >= 100_000) return v / 1_000_000.0;
+            if (v >= 1_000) return v / 1_000.0;
+            return v;
+        }
+
         if (v > 100_000) return v / 1_000_000.0;
         if (v > 1_000) return v / 1_000.0;
         return v;
@@ -179,7 +202,6 @@ public final class PowerReader {
     private static double temperatureFromRaw(long raw) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
         double t = Math.abs((double) raw);
-        if (t >= 1000) return t / 10.0;
         if (t >= 100) return t / 10.0;
         return t;
     }
@@ -245,19 +267,9 @@ public final class PowerReader {
     }
 
     private static long readUeventValue(String key) {
-        File base = new File("/sys/class/power_supply");
-        File[] supplies = base.listFiles();
-        if (supplies == null) return Long.MIN_VALUE;
-
-        for (File supply : supplies) {
-            String n = supply.getName().toLowerCase(Locale.US);
-            if (supply.isDirectory() &&
-                    (n.contains("battery") || n.equals("bms") || n.equals("main"))) {
-                long value = parseUevent(new File(supply, "uevent"), key);
-                if (value != Long.MIN_VALUE && value != 0) return value;
-            }
-        }
-        return Long.MIN_VALUE;
+        File base = new File("/sys/class/power_supply/battery/uevent");
+        if (!base.isFile()) return Long.MIN_VALUE;
+        return parseUevent(base, key);
     }
 
     private static long parseUevent(File file, String key) {
@@ -276,64 +288,102 @@ public final class PowerReader {
         return Long.MIN_VALUE;
     }
 
-    private static double readSysfsCurrent() {
-        if (currentPath != null && !currentPath.isEmpty()) {
-            long raw = number(currentPath);
-            if (raw != Long.MIN_VALUE && raw != 0) {
-                return currentFromRaw(raw, currentPath);
-            }
+    private static double readBatteryCurrent() {
+        // This device exposes the real battery current here. It is signed uA.
+        // On the supplied dump it is negative while status=Charging, so normalize
+        // the charging direction below rather than treating it as -0 mA.
+        currentPath = firstReadable(
+                BATTERY + "current_now",
+                BATTERY + "uevent"
+        );
+
+        if (currentPath.equals(BATTERY + "uevent")) {
+            long raw = readUeventValue("POWER_SUPPLY_CURRENT_NOW");
+            return raw == Long.MIN_VALUE ? 0 : raw / 1_000_000.0;
         }
 
-        // Prefer legacy interfaces first when BatteryManager reports zero.
-        currentPath = resolveNonZero(CURRENT_NAMES);
         if (!currentPath.isEmpty()) {
             return currentFromRaw(number(currentPath), currentPath);
         }
 
-        // Some kernels expose the same value only through power_supply/uevent.
-        long raw = readUeventValue("POWER_SUPPLY_CURRENT_NOW");
-        if (raw == Long.MIN_VALUE || raw == 0) {
-            raw = readUeventValue("POWER_SUPPLY_CURRENT_AVG");
-        }
-        if (raw != Long.MIN_VALUE && raw != 0) {
-            currentPath = "uevent:POWER_SUPPLY_CURRENT";
-            return raw / 1_000_000.0;
+        currentPath = resolveNonZero(CURRENT_NAMES);
+        return currentPath.isEmpty() ? 0 : currentFromRaw(number(currentPath), currentPath);
+    }
+
+    private static double readBatteryVoltage() {
+        // Prefer the actual battery voltage node. The supplied dump shows
+        // ~4059-4090 mV; Android framework voltage was the source of the
+        // incorrect single-digit mV readings seen in the UI.
+        voltagePath = firstReadable(
+                BATTERY + "voltage_now",
+                BATTERY + "uevent"
+        );
+
+        if (voltagePath.equals(BATTERY + "uevent")) {
+            long raw = readUeventValue("POWER_SUPPLY_VOLTAGE_NOW");
+            return raw == Long.MIN_VALUE ? 0 : voltageFromRaw(raw, "voltage_now");
         }
 
-        return 0;
+        if (!voltagePath.isEmpty()) {
+            return voltageFromRaw(number(voltagePath), voltagePath);
+        }
+
+        voltagePath = resolveNonZero(VOLTAGE_NAMES);
+        return voltagePath.isEmpty() ? 0 : voltageFromRaw(number(voltagePath), voltagePath);
+    }
+
+    private static double readTemperature(Intent batteryIntent) {
+        int framework = batteryIntent == null
+                ? 0 : batteryIntent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0);
+
+        if (framework > 0) return framework / 10.0;
+
+        String path = firstReadable(BATTERY + "temp", BATTERY + "uevent");
+        if (path.equals(BATTERY + "uevent")) {
+            long raw = readUeventValue("POWER_SUPPLY_TEMP");
+            return raw == Long.MIN_VALUE ? 0 : temperatureFromRaw(raw);
+        }
+
+        if (!path.isEmpty()) return temperatureFromRaw(number(path));
+
+        path = resolveNonZero(TEMP_NAMES);
+        return path.isEmpty() ? 0 : temperatureFromRaw(number(path));
+    }
+
+    private static boolean readChargerOnline() {
+        return isOnline(MASTER_CHARGER + "online") ||
+                isOnline(AC + "online") ||
+                number(CHARGER_IC + "online") == 2;
+    }
+
+    private static String readChargerType() {
+        String type = read(CHARGER_IC + "type");
+        if (!type.isEmpty() && !"Unknown".equalsIgnoreCase(type)) return type;
+
+        if (isOnline(AC + "online")) return "AC";
+        if (readChargerOnline()) return "AC";
+        return "Battery";
     }
 
     private static double readHealthPercent() {
         if (healthPath == null || healthPath.isEmpty()) {
-            healthPath = resolveNonZero(HEALTH_NAMES);
+            healthPath = firstReadable(BATTERY + "health");
+        }
+
+        // The device exposes charge_full == charge_full_design in the dump.
+        // Prefer the capacity/design ratio over the textual "Good" health state.
+        healthFullPath = firstReadable(BATTERY + "charge_full");
+        healthDesignPath = firstReadable(BATTERY + "charge_full_design");
+
+        long full = number(healthFullPath);
+        long design = number(healthDesignPath);
+        if (full > 0 && design > 0) {
+            return Math.max(0, Math.min(100, full * 100.0 / design));
         }
 
         if (!healthPath.isEmpty()) {
             long raw = number(healthPath);
-            if (raw != Long.MIN_VALUE) {
-                double value = Math.abs((double) raw);
-                if (value > 0 && value <= 100) return value;
-                if (value > 100 && value <= 10000) return value / 100.0;
-            }
-        }
-
-        if (healthFullPath == null || healthFullPath.isEmpty()) {
-            healthFullPath = resolveNonZero("charge_full");
-        }
-        if (healthDesignPath == null || healthDesignPath.isEmpty()) {
-            healthDesignPath = resolveNonZero("charge_full_design");
-        }
-
-        long full = number(healthFullPath);
-        long design = number(healthDesignPath);
-        if (full > 0 && design > 0 && full <= design * 2L) {
-            return Math.max(0, Math.min(100, full * 100.0 / design));
-        }
-
-        long ueventFull = readUeventValue("POWER_SUPPLY_CHARGE_FULL");
-        long ueventDesign = readUeventValue("POWER_SUPPLY_CHARGE_FULL_DESIGN");
-        if (ueventFull > 0 && ueventDesign > 0 && ueventFull <= ueventDesign * 2L) {
-            return Math.max(0, Math.min(100, ueventFull * 100.0 / ueventDesign));
+            if (raw > 0 && raw <= 100) return raw;
         }
 
         return 0;
@@ -347,58 +397,36 @@ public final class PowerReader {
                 ? batteryIntent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) : -1;
         int status = batteryIntent != null
                 ? batteryIntent.getIntExtra(BatteryManager.EXTRA_STATUS, -1) : -1;
-        int voltageMv = batteryIntent != null
-                ? batteryIntent.getIntExtra(BatteryManager.EXTRA_VOLTAGE, 0) : 0;
-        int temperatureTenths = batteryIntent != null
-                ? batteryIntent.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, 0) : 0;
-        int pluggedType = batteryIntent != null
-                ? batteryIntent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) : 0;
 
-        BatteryManager bm = (BatteryManager) context.getSystemService(Context.BATTERY_SERVICE);
-
-        boolean plugged = pluggedType != 0 ||
+        boolean plugged = readChargerOnline() ||
                 status == BatteryManager.BATTERY_STATUS_CHARGING ||
                 status == BatteryManager.BATTERY_STATUS_FULL;
 
-        double currentA = readBatteryManagerCurrent(bm);
-        boolean frameworkCurrent = currentA != 0;
-        if (!frameworkCurrent) currentA = readSysfsCurrent();
+        double currentA = readBatteryCurrent();
 
-        String source = frameworkCurrent ? "BatteryManager" : currentPath;
+        // This MT6895/MT6375 battery node reports negative current during
+        // charging. Normalize only for a genuinely plugged + charging state.
+        boolean charging = plugged &&
+                (status == BatteryManager.BATTERY_STATUS_CHARGING ||
+                 "Charging".equalsIgnoreCase(read(BATTERY + "status")));
+        if (charging && currentA < 0) currentA = -currentA;
+
+        String source = currentPath;
         addCurrentSample(currentA, source, plugged);
         currentA = averagedCurrent(currentA);
 
-        double voltageV = voltageMv > 0 ? voltageMv / 1000.0 : 0;
-        if (voltageV <= 0) {
-            if (voltagePath == null || voltagePath.isEmpty()) {
-                voltagePath = resolveNonZero(VOLTAGE_NAMES);
-            }
-            if (!voltagePath.isEmpty()) {
-                voltageV = voltageFromRaw(number(voltagePath), voltagePath);
-            }
-        }
+        double voltageV = readBatteryVoltage();
+        double temperatureC = readTemperature(batteryIntent);
 
-        double temperatureC = temperatureTenths > 0
-                ? temperatureTenths / 10.0
-                : 0;
+        String charger = readChargerType();
+        if (!plugged) charger = "Battery";
 
-        if (temperatureC <= 0) {
-            String tempPath = resolveNonZero(TEMP_NAMES);
-            if (!tempPath.isEmpty()) {
-                temperatureC = temperatureFromRaw(number(tempPath));
-            }
-        }
-
-        String charger;
-        switch (pluggedType) {
-            case BatteryManager.BATTERY_PLUGGED_AC: charger = "AC"; break;
-            case BatteryManager.BATTERY_PLUGGED_USB: charger = "USB"; break;
-            case BatteryManager.BATTERY_PLUGGED_WIRELESS: charger = "Wireless"; break;
-            default: charger = plugged ? "Connected" : "Battery";
-        }
+        String battery = level >= 0
+                ? String.format(Locale.US, "%d%%", level)
+                : "--";
 
         return new Snapshot(
-                level >= 0 ? String.format(Locale.US, "%d%%", level) : "--",
+                battery,
                 currentA,
                 voltageV,
                 temperatureC,
