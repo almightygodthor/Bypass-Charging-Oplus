@@ -5,22 +5,21 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Clean plug silhouette. The body stays solid so it remains readable
-         at the small Quick Settings size. -->
+    <!-- Solid plug silhouette, optimized for the 24dp Quick Settings grid. -->
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="evenOdd"
-        android:pathData="M7,2C6.45,2 6,2.45 6,3V6.5H5.25C3.46,6.5 2,7.96 2,9.75V11.5C2,15.55 5.05,18.93 9,19.45V20H15V19.45C18.95,18.93 22,15.55 22,11.5V9.75C22,7.96 20.54,6.5 18.75,6.5H18V3C18,2.45 17.55,2 17,2H16C15.45,2 15,2.45 15,3V6.5H9V3C9,2.45 8.55,2 8,2Z
+        android:pathData="M7,2C6.45,2 6,2.45 6,3V6.5H5.25C3.46,6.5 2,7.96 2,9.75V11.5C2,15.55 5.05,18.93 9,19.45V20H15V19.45C18.95,18.93 22,15.55 22,11.5V9.75C22,7.96 20.54,6.5 18.75,6.5H18V3C18,2.45 17.55,2 17,2H16C15.45,2 15,2.45 15,3V6.5H9V3C9,2.45 8.55,2 8,2H7Z
             M8,10.1C8,9.49 8.49,9 9.1,9H14.9C15.51,9 16,9.49 16,10.1V10.9C16,11.51 15.51,12 14.9,12H9.1C8.49,12 8,11.51 8,10.9Z" />
 
-    <!-- Dotted cable path: deliberately separated dots instead of a solid
-         wire, making the intended cable direction unmistakable. -->
+    <!-- Uniform dotted cable: fixed-size square dots on a precise L path. -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M11,20.25h2v1.2h-2z
-            M11,22.05h2v1.2h-2z
-            M14,22.05h1.2v1.2H14z
-            M15.8,22.05h1.2v1.2h-1.2z
-            M17.6,22.05h1.2v1.2h-1.2z
-            M19.4,22.05h1.2v1.2h-1.2z" />
+        android:pathData="M11.5,20.5h1v1h-1z
+            M11.5,22h1v1h-1z
+            M13.5,21.5h1v1h-1z
+            M15.25,21.5h1v1h-1z
+            M17,21.5h1v1h-1z
+            M18.75,21.5h1v1h-1z
+            M20.5,21.5h1v1h-1z" />
 </vector>
