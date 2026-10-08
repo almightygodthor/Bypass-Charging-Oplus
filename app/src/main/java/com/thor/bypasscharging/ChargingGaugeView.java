@@ -109,7 +109,7 @@ public final class ChargingGaugeView extends View {
         paint.setTypeface(AppTypography.labelMedium());
         paint.setTextSize(sp(14));
         paint.setColor(GREEN);
-        c.drawText(String.format(Locale.US, "%+.1f W", power), cx, top+dp(26), paint);
+        c.drawText(bypass ? "0.0 W" : String.format(Locale.US, "%+.1f W", power), cx, top+dp(23), paint);
     }
 
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
