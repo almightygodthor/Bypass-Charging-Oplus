@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
 
     private TextView section(String s) {
         TextView v = tv(s, 12, MUTED);
-        v.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        v.setTypeface(AppTypography.labelMedium());
         v.setLetterSpacing(.12f);
         v.setPadding(0, dp(2), 0, dp(2));
         return v;
@@ -102,7 +102,7 @@ public class MainActivity extends Activity {
         header.setGravity(Gravity.CENTER_VERTICAL);
 
         TextView title = tv("OPLUS BYPASS", 25, TEXT);
-        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        title.setTypeface(AppTypography.displayMedium());
         header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
 
         TextView debug = tv("⋮", 28, MUTED);
@@ -114,6 +114,7 @@ public class MainActivity extends Activity {
 
         subtitleView = tv("Bypass charging", 14, MUTED);
         TextView subtitle = subtitleView;
+        subtitle.setTypeface(AppTypography.body());
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, dp(24));
         subLp.topMargin = -dp(7);
         content.addView(subtitle, subLp);
@@ -126,31 +127,31 @@ public class MainActivity extends Activity {
         content.addView(gaugeWrap, gaugeLp);
 
         LinearLayout monitor = card();
-        monitor.setPadding(dp(18), dp(16), dp(14), dp(16));
+        monitor.setPadding(dp(16), dp(14), dp(12), dp(14));
         LinearLayout monRow = new LinearLayout(this);
         monRow.setGravity(Gravity.CENTER_VERTICAL);
 
         monitorDot = tv("●", 17, GREEN);
         monitorDot.setGravity(Gravity.CENTER);
-        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(28), dp(64)));
+        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(26), dp(56)));
 
         LinearLayout monText = new LinearLayout(this);
         monText.setOrientation(LinearLayout.VERTICAL);
         monText.setGravity(Gravity.CENTER_VERTICAL);
         monitorTitle = tv("BYPASS CHARGING", 15, TEXT);
-        monitorTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
+        monitorTitle.setTypeface(AppTypography.labelMedium());
         monitorTitle.setLetterSpacing(.04f);
         monitorText = tv("Direct battery bypass control", 12, MUTED);
         monitorText.setPadding(0, dp(4), 0, 0);
         monText.addView(monitorTitle);
         monText.addView(monitorText);
-        monRow.addView(monText, new LinearLayout.LayoutParams(0, dp(64), 1));
+        monRow.addView(monText, new LinearLayout.LayoutParams(0, dp(56), 1));
 
         bypassSwitch = new GlassSwitchView(this);
         bypassSwitch.setOnCheckedChangeListener(checked -> toggleBypass());
-        monRow.addView(bypassSwitch, new LinearLayout.LayoutParams(dp(116), dp(56)));
+        monRow.addView(bypassSwitch, new LinearLayout.LayoutParams(dp(108), dp(52)));
         monitor.addView(monRow);
-        content.addView(monitor, new LinearLayout.LayoutParams(-1, dp(96)));
+        content.addView(monitor, new LinearLayout.LayoutParams(-1, dp(84)));
 
         content.addView(section("LIVE READINGS"), new LinearLayout.LayoutParams(-1, dp(34)));
 
@@ -330,14 +331,16 @@ public class MainActivity extends Activity {
 
     private void refresh(PowerReader.Snapshot s, boolean bypass, boolean rooted) {
         float level = parseLevel(s.battery);
-        gauge.setValues(level, s.powerW, s.charging);
+        gauge.setValues(level, bypass ? 0.0 : s.powerW, s.charging, bypass);
 
         voltageCard.setData("VOLTAGE", String.format(Locale.US, "%.2f V", s.voltageV), "ϟ",
                 s.voltageV / 10.0, GREEN, true);
-        currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", s.currentA * 1000), "⇆",
-                Math.min(Math.abs(s.currentA) / 5.0, .95), GREEN, true);
-        powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", s.powerW), "ϟ",
-                Math.min(s.powerW / 30.0, .95), GREEN, true);
+        double displayCurrentA = bypass ? 0.0 : s.currentA;
+        double displayPowerW = bypass ? 0.0 : s.powerW;
+        currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", displayCurrentA * 1000), "⇆",
+                bypass ? .05 : Math.min(Math.abs(displayCurrentA) / 5.0, .95), GREEN, true);
+        powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", displayPowerW), "ϟ",
+                bypass ? .05 : Math.min(Math.abs(displayPowerW) / 30.0, .95), GREEN, true);
         tempCard.setData("TEMPERATURE", String.format(Locale.US, "%.1f°C", s.temperatureC), "♨",
                 Math.min(s.temperatureC / 50.0, .95), 0xFFFFA7A0, true);
 
