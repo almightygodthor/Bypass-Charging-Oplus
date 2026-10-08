@@ -86,10 +86,6 @@ public class MainActivity extends Activity {
         title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
         header.addView(title, new LinearLayout.LayoutParams(0, dp(48), 1));
 
-        TextView badge = tv("♢", 34, GREEN);
-        badge.setGravity(Gravity.CENTER);
-        header.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
-
         TextView debug = tv("⋮", 28, MUTED);
         debug.setGravity(Gravity.CENTER);
         debug.setContentDescription("Open debug log");
