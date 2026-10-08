@@ -33,7 +33,7 @@ public class MainActivity extends Activity {
 
     private ChargingGaugeView gauge;
     private SparklineCardView voltageCard, currentCard, powerCard, tempCard, healthCard, pluggedCard;
-    private TextView monitorDot, monitorTitle, monitorText, monitorAction, rootStatus;
+    private TextView monitorDot, monitorTitle, monitorText, monitorAction, rootStatus, subtitleView;
     private boolean busy;
 
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
@@ -93,7 +93,8 @@ public class MainActivity extends Activity {
         header.addView(debug, new LinearLayout.LayoutParams(dp(34), dp(48)));
         content.addView(header);
 
-        TextView subtitle = tv("Bypass charging", 14, MUTED);
+        subtitleView = tv("Bypass charging", 14, MUTED);
+        TextView subtitle = subtitleView;
         LinearLayout.LayoutParams subLp = new LinearLayout.LayoutParams(-1, dp(24));
         subLp.topMargin = -dp(7);
         content.addView(subtitle, subLp);
@@ -242,6 +243,7 @@ public class MainActivity extends Activity {
                 s.healthPercent > 0 ? s.healthPercent / 100.0 : .65, 0xFFFFB29F, false);
         pluggedCard.setData("PLUGGED", s.charger, "▣", s.plugged ? .8 : .2, TEXT, false);
 
+        subtitleView.setText(GtNeo3Variant.label(s.variant));
         monitorTitle.setText(bypass ? "Bypass Active" : "Monitoring Active");
         monitorText.setText(bypass
                 ? "Battery is isolated from normal charging"
@@ -252,8 +254,6 @@ public class MainActivity extends Activity {
         DebugLog.add(String.format(Locale.US,
                 "UI update: variant=%s design=%dmAh level=%s current=%.3fA voltage=%.3fV power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
                 GtNeo3Variant.label(s.variant), s.designCapacityMah, s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
-                s.plugged, s.charger, bypass, rooted));
-                s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
                 s.plugged, s.charger, bypass, rooted));
     }
 
