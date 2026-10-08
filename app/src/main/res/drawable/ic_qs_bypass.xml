@@ -5,17 +5,18 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
 
-    <!-- Refined plug silhouette based on the supplied reference.
-         Solid white, transparent background, optimized for QS tinting. -->
+    <!-- Solid white QS glyph: plug body, two rounded prongs and the
+         short L-shaped cable exactly following the supplied reference. -->
     <path
         android:fillColor="#FFFFFFFF"
         android:fillType="evenOdd"
-        android:pathData="M7,2C6.45,2 6,2.45 6,3V7H5C3.34,7 2,8.34 2,10V12C2,16.97 6.03,21 11,21H11.5V22H9.5C8.67,22 8,22.67 8,23.5V24H16V23.5C16,22.67 15.33,22 14.5,22H12.5V21H13C17.97,21 22,16.97 22,12V10C22,8.34 20.66,7 19,7H18V3C18,2.45 17.55,2 17,2H16C15.45,2 15,2.45 15,3V7H9V3C9,2.45 8.55,2 8,2Z
-        M8.2,11.15C8.2,10.51 8.72,10 9.36,10H14.64C15.28,10 15.8,10.51 15.8,11.15V11.85C15.8,12.49 15.28,13 14.64,13H9.36C8.72,13 8.2,12.49 8.2,11.85Z" />
+        android:pathData="M7,2C6.45,2 6,2.45 6,3V6.5H5.25C3.46,6.5 2,7.96 2,9.75V11.5C2,15.85 5.38,19.47 9.6,19.88V20.8H8.7C7.87,20.8 7.2,21.47 7.2,22.3V22.7C7.2,23.42 7.78,24 8.5,24H15.5C16.22,24 16.8,23.42 16.8,22.7V22.3C16.8,21.47 16.13,20.8 15.3,20.8H14.4V19.88C18.62,19.47 22,15.85 22,11.5V9.75C22,7.96 20.54,6.5 18.75,6.5H18V3C18,2.45 17.55,2 17,2H16C15.45,2 15,2.45 15,3V6.5H9V3C9,2.45 8.55,2 8,2Z
+            M8,10.1C8,9.49 8.49,9 9.1,9H14.9C15.51,9 16,9.49 16,10.1V10.9C16,11.51 15.51,12 14.9,12H9.1C8.49,12 8,11.51 8,10.9Z" />
 
-    <!-- Cable tail: deliberately simple so it remains legible at 24dp. -->
+    <!-- Reference-style cable: thick, short, directly attached below the
+         plug body and turning right with a rounded end. -->
     <path
         android:fillColor="#FFFFFFFF"
-        android:pathData="M10.5,19.5H13.5V21.5H10.5Z
-                          M11,21H13V22C13,22.55 13.45,23 14,23H19C19.55,23 20,22.55 20,22V20.5H22V22C22,23.66 20.66,25 19,25H14C12.34,25 11,23.66 11,22Z" />
+        android:pathData="M10.35,18.4H13.65V21.05H10.35Z
+            M10.35,20.1H13.65V21.15C13.65,21.51 13.94,21.8 14.3,21.8H18.95C19.53,21.8 20,22.27 20,22.85C20,23.43 19.53,23.9 18.95,23.9H14.05C12,23.9 10.35,22.24 10.35,20.2Z" />
 </vector>
