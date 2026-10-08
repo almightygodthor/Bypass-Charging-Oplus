@@ -88,7 +88,13 @@ public class MainActivity extends Activity {
 
         TextView badge = tv("♢", 34, GREEN);
         badge.setGravity(Gravity.CENTER);
-        header.addView(badge, new LinearLayout.LayoutParams(dp(54), dp(48)));
+        header.addView(badge, new LinearLayout.LayoutParams(dp(48), dp(48)));
+
+        TextView debug = tv("⋮", 28, MUTED);
+        debug.setGravity(Gravity.CENTER);
+        debug.setContentDescription("Open debug log");
+        debug.setOnClickListener(v -> startActivity(new Intent(this, DebugLogActivity.class)));
+        header.addView(debug, new LinearLayout.LayoutParams(dp(34), dp(48)));
         content.addView(header);
 
         TextView subtitle = tv("Bypass charging", 14, MUTED);
@@ -147,7 +153,7 @@ public class MainActivity extends Activity {
         ScrollView scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
-        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
+        scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);\n        scroll.setVerticalScrollBarEnabled(false);\n        scroll.setHorizontalScrollBarEnabled(false);
         scroll.setOnApplyWindowInsetsListener((view, insets) -> {
             content.setPadding(
                     dp(18) + insets.getSystemWindowInsetLeft(),
@@ -159,6 +165,7 @@ public class MainActivity extends Activity {
         scroll.addView(content);
         setContentView(scroll);
 
+        DebugLog.add("MainActivity started");
         main.post(update);
     }
 
@@ -204,6 +211,7 @@ public class MainActivity extends Activity {
             boolean current = root && RootShell.isBypassEnabled();
             boolean target = !current;
             boolean ok = root && RootShell.setBypass(target);
+            DebugLog.add("Bypass target=" + target + " result=" + ok);
             PowerReader.Snapshot s = PowerReader.snapshot(this);
             main.post(() -> {
                 busy = false;
@@ -243,6 +251,10 @@ public class MainActivity extends Activity {
         monitorAction.setText(bypass ? "Disable" : "Enable");
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
+        DebugLog.add(String.format(Locale.US,
+                "UI update: level=%s current=%.3fA voltage=%.3fV power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
+                s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
+                s.plugged, s.charger, bypass, rooted));
     }
 
     private float parseLevel(String s) {
@@ -267,6 +279,7 @@ public class MainActivity extends Activity {
             if (!isFinishing()) {
                 worker.execute(() -> {
                     PowerReader.Snapshot s = PowerReader.snapshot(MainActivity.this);
+                    DebugLog.add("Telemetry snapshot captured");
                     boolean root = RootShell.isRootAvailable();
                     boolean bypass = root && RootShell.isBypassEnabled();
                     main.post(() -> refresh(s, bypass, root));
