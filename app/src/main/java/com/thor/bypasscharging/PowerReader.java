@@ -77,14 +77,12 @@ public final class PowerReader {
         ).trim();
     }
 
-    private static double currentFromRaw(long raw) {
+    private static double currentFromSysfs(long raw) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
         double a = Math.abs(raw);
-        // Most Android BatteryManager/sysfs current values are µA.
-        // Vendor charger nodes may expose mA or A; use magnitude as a safe fallback.
-        if (a >= 100_000) return a / 1_000_000.0;
-        if (a >= 100) return a / 1_000.0;
-        return a;
+        if (a >= 100_000) return a / 1_000_000.0; // µA
+        if (a >= 100) return a / 1_000.0;          // mA
+        return a;                                  // A
     }
 
     private static double voltageFromRaw(long raw) {
@@ -140,7 +138,13 @@ public final class PowerReader {
             rawCurrent = number(currentPath);
         }
 
-        double currentA = currentFromRaw(rawCurrent);
+        // BatteryManager.CURRENT_NOW / CURRENT_AVERAGE are defined in µA.
+        double currentA = (rawCurrent == Long.MIN_VALUE || rawCurrent == 0)
+                ? 0 : Math.abs(rawCurrent) / 1_000_000.0;
+
+        if (currentA == 0) {
+            currentA = currentFromSysfs(number(currentPath));
+        }
 
         int uvFromIntent = voltageMv > 0 ? voltageMv * 1000 : 0;
         double voltageV = voltageFromRaw(uvFromIntent);
