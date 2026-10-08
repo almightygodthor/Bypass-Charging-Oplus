@@ -445,7 +445,13 @@ public final class PowerReader {
             // long 20-50 second lag of the old rolling average.
             smoothedCurrent += (sampledCurrent - smoothedCurrent) * 0.58;
         }
-        double currentA = smoothedCurrent;
+        // Display direction follows battery flow, not cable presence. A battery
+        // can be physically connected to a charger while still supplying the
+        // device (for example during bypass charging). Positive means current
+        // is entering the battery; negative means the battery is supplying it.
+        double currentA = charging
+                ? Math.abs(smoothedCurrent)
+                : -Math.abs(smoothedCurrent);
 
         double voltageV = readBatteryVoltage();
         double temperatureC = readTemperature(batteryIntent);
