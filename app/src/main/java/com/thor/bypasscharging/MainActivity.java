@@ -58,8 +58,17 @@ public class MainActivity extends Activity {
     private LinearLayout card() {
         LinearLayout l = new LinearLayout(this);
         l.setOrientation(LinearLayout.VERTICAL);
-        l.setBackground(round(CARD, 24));
+        l.setBackground(roundGlass(CARD, 24));
+        l.setElevation(dp(2));
         return l;
+    }
+
+    private android.graphics.drawable.GradientDrawable roundGlass(int color, float r) {
+        android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
+        g.setColor(0xC91F2921);
+        g.setCornerRadius(dp(r));
+        g.setStroke(dp(1), 0x305B6D5F);
+        return g;
     }
 
     private android.graphics.drawable.GradientDrawable round(int color, float r) {
@@ -117,13 +126,13 @@ public class MainActivity extends Activity {
         content.addView(gaugeWrap, gaugeLp);
 
         LinearLayout monitor = card();
-        monitor.setPadding(dp(18), dp(13), dp(14), dp(13));
+        monitor.setPadding(dp(18), dp(16), dp(14), dp(16));
         LinearLayout monRow = new LinearLayout(this);
         monRow.setGravity(Gravity.CENTER_VERTICAL);
 
         monitorDot = tv("●", 17, GREEN);
         monitorDot.setGravity(Gravity.CENTER);
-        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(28), dp(62)));
+        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(28), dp(64)));
 
         LinearLayout monText = new LinearLayout(this);
         monText.setOrientation(LinearLayout.VERTICAL);
@@ -134,13 +143,13 @@ public class MainActivity extends Activity {
         monitorText.setPadding(0, dp(4), 0, 0);
         monText.addView(monitorTitle);
         monText.addView(monitorText);
-        monRow.addView(monText, new LinearLayout.LayoutParams(0, dp(62), 1));
+        monRow.addView(monText, new LinearLayout.LayoutParams(0, dp(64), 1));
 
         bypassSwitch = new GlassSwitchView(this);
         bypassSwitch.setOnCheckedChangeListener(checked -> toggleBypass());
-        monRow.addView(bypassSwitch, new LinearLayout.LayoutParams(dp(124), dp(62)));
+        monRow.addView(bypassSwitch, new LinearLayout.LayoutParams(dp(116), dp(56)));
         monitor.addView(monRow);
-        content.addView(monitor, new LinearLayout.LayoutParams(-1, dp(88)));
+        content.addView(monitor, new LinearLayout.LayoutParams(-1, dp(96)));
 
         content.addView(section("LIVE READINGS"), new LinearLayout.LayoutParams(-1, dp(34)));
 
@@ -342,7 +351,7 @@ public class MainActivity extends Activity {
         monitorTitle.setText("BYPASS CHARGING");
         monitorText.setText(bypass
                 ? "Battery bypass is enabled"
-                : (s.plugged ? "Normal charging is active" : "Connect a charger for bypass control"));
+                : (s.plugged ? "Normal charging is active" : "Connect a charger to enable bypass"));
         bypassSwitch.setChecked(bypass);
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
@@ -379,7 +388,16 @@ public class MainActivity extends Activity {
                             prefs.getBoolean("root_gate_completed", false);
                     boolean root = gateCompleted && RootShell.isRootAvailable();
                     boolean bypass = root && RootShell.isBypassEnabled();
-                    main.post(() -> refresh(s, bypass, root));
+                    main.post(() -> {
+                        if (gateCompleted && !root) {
+                            prefs.edit().putBoolean("root_gate_completed", false).apply();
+                            showRootGate(true);
+                            rootOverlay.setRevoked();
+                            DebugLog.add("Root access revoked; dashboard locked");
+                            return;
+                        }
+                        refresh(s, bypass, root);
+                    });
                 });
                 main.postDelayed(this, 1000);
             }
