@@ -11,13 +11,20 @@ import java.util.concurrent.Executors;
 public class BypassTileService extends TileService {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final Handler main = new Handler(Looper.getMainLooper());
+    private boolean busy;
 
     private void refreshAsync() {
+        if (busy) return;
+        busy = true;
+
         executor.execute(() -> {
             boolean root = RootShell.isRootAvailable();
             String path = BypassNodeDetector.find();
             boolean on = !path.isEmpty() && RootShell.isBypassEnabled();
-            main.post(() -> apply(root, !path.isEmpty(), on));
+            main.post(() -> {
+                busy = false;
+                apply(root, !path.isEmpty(), on);
+            });
         });
     }
 
@@ -25,11 +32,9 @@ public class BypassTileService extends TileService {
         Tile tile = getQsTile();
         if (tile == null) return;
 
-        int newState = !root || !node
+        tile.setState(!root || !node
                 ? Tile.STATE_UNAVAILABLE
-                : (on ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
-
-        tile.setState(newState);
+                : (on ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE));
         tile.setLabel(on ? "Bypass ON" : "Bypass");
         tile.setContentDescription(on
                 ? "Bypass charging enabled"
@@ -50,15 +55,31 @@ public class BypassTileService extends TileService {
         super.onClick();
 
         executor.execute(() -> {
-            if (!RootShell.isRootAvailable()) {
-                refreshAsync();
+            boolean root = RootShell.isRootAvailable();
+            if (!root) {
+                main.post(this::refreshAsync);
                 return;
             }
 
-            boolean target = !RootShell.isBypassEnabled();
-            RootShell.setBypass(target);
+            boolean current = RootShell.isBypassEnabled();
+            boolean target = !current;
 
-            main.post(this::refreshAsync);
+            main.post(() -> {
+                Tile tile = getQsTile();
+                if (tile != null) {
+                    tile.setState(target ? Tile.STATE_ACTIVE : Tile.STATE_INACTIVE);
+                    tile.setLabel(target ? "Bypass ON" : "Bypass");
+                    tile.setStateDescription(target ? "Enabled" : "Disabled");
+                    tile.updateTile();
+                }
+            });
+
+            boolean ok = RootShell.setBypass(target);
+            main.post(() -> {
+                if (!ok) {
+                    refreshAsync();
+                }
+            });
         });
     }
 
