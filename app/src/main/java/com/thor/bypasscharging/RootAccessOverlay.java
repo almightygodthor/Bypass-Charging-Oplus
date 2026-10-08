@@ -34,7 +34,7 @@ public final class RootAccessOverlay extends FrameLayout {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.CENTER_HORIZONTAL);
-        card.setPadding(dp(28), dp(30), dp(28), dp(26));
+        card.setPadding(dp(28), dp(28), dp(28), dp(28));
         card.setBackground(round(CARD, 30));
 
         TextView icon = text("◆", 26, GREEN);
@@ -54,8 +54,8 @@ public final class RootAccessOverlay extends FrameLayout {
                 13, MUTED);
         body.setGravity(Gravity.CENTER);
         body.setLineSpacing(dp(2), 1.08f);
-        LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(-1, dp(112));
-        bodyLp.topMargin = dp(6);
+        LinearLayout.LayoutParams bodyLp = new LinearLayout.LayoutParams(-1, dp(108));
+        bodyLp.topMargin = dp(8);
         card.addView(body, bodyLp);
 
         status = text("Root status: not checked", 12, MUTED);
@@ -74,9 +74,12 @@ public final class RootAccessOverlay extends FrameLayout {
         checkLp.topMargin = dp(12);
         card.addView(check, checkLp);
 
+        // Let the card size itself from its content. The previous fixed 342dp
+        // height was 4dp shorter than the child stack, clipping the lower edge
+        // of the action button on some densities.
         FrameLayout.LayoutParams cardLp = new FrameLayout.LayoutParams(
                 Math.min(dp(360), getResources().getDisplayMetrics().widthPixels - dp(36)),
-                dp(342),
+                FrameLayout.LayoutParams.WRAP_CONTENT,
                 Gravity.CENTER);
         cardLp.gravity = Gravity.CENTER;
         addView(card, cardLp);
