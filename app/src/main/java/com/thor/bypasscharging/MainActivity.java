@@ -228,8 +228,8 @@ public class MainActivity extends Activity {
         float level = parseLevel(s.battery);
         gauge.setValues(level, s.powerW, s.plugged);
 
-        voltageCard.setData("VOLTAGE", String.format(Locale.US, "%.0f mV", s.voltageV * 1000), "ϟ",
-                s.voltageV / 5.0, GREEN, true);
+        voltageCard.setData("VOLTAGE", String.format(Locale.US, "%.2f V", s.voltageV), "ϟ",
+                s.voltageV / 10.0, GREEN, true);
         currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", s.currentA * 1000), "≈",
                 Math.min(s.currentA / 5.0, .95), GREEN, true);
         powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", s.powerW), "▣",
@@ -253,8 +253,8 @@ public class MainActivity extends Activity {
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
-                "UI update: variant=%s design=%dmAh level=%s current=%.3fA voltage=%.3fV power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
-                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
+                "UI update: variant=%s design=%dmAh cells=%d rawVoltage=%.3fV voltage=%.3fV current=%.3fA power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
+                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.cellCount, s.rawVoltageV, s.voltageV, s.currentA, s.powerW, s.temperatureC,
                 s.plugged, s.charger, bypass, rooted));
     }
 
