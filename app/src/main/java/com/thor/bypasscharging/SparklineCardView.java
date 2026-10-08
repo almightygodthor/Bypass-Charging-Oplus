@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.graphics.LinearGradient;
+import android.graphics.Shader;
 import android.animation.ValueAnimator;
 import android.view.animation.PathInterpolator;
 import android.util.AttributeSet;
