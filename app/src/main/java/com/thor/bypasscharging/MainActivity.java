@@ -5,7 +5,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.RenderEffect;
+import android.graphics.Shader;
 import android.os.BatteryManager;
+import android.os.Build;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -35,7 +39,11 @@ public class MainActivity extends Activity {
     private SparklineCardView voltageCard, currentCard, powerCard, tempCard, healthCard, pluggedCard;
     private TextView monitorDot, monitorTitle, monitorText, rootStatus, subtitleView;
     private GlassSwitchView bypassSwitch;
+    private FrameLayout rootContainer;
+    private ScrollView scroll;
+    private RootAccessOverlay rootOverlay;
     private boolean busy;
+    private SharedPreferences prefs;
 
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
 
@@ -74,6 +82,7 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(BG);
         getWindow().setNavigationBarColor(BG);
         getWindow().getDecorView().setSystemUiVisibility(0);
+        getWindow().getAttributes().preferredRefreshRate = 120f;
 
         LinearLayout content = new LinearLayout(this);
         content.setOrientation(LinearLayout.VERTICAL);
@@ -148,7 +157,7 @@ public class MainActivity extends Activity {
         rootLp.topMargin = dp(8);
         content.addView(rootStatus, rootLp);
 
-        ScrollView scroll = new ScrollView(this);
+        scroll = new ScrollView(this);
         scroll.setFillViewport(true);
         scroll.setBackgroundColor(BG);
         scroll.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -163,8 +172,24 @@ public class MainActivity extends Activity {
             return insets;
         });
         scroll.addView(content);
-        setContentView(scroll);
 
+        rootContainer = new FrameLayout(this);
+        rootContainer.setBackgroundColor(BG);
+        rootContainer.addView(scroll, new FrameLayout.LayoutParams(-1, -1));
+
+        rootOverlay = new RootAccessOverlay(this);
+        rootOverlay.setListener(this::checkRootFromOverlay);
+        rootContainer.addView(rootOverlay, new FrameLayout.LayoutParams(-1, -1));
+        setContentView(rootContainer);
+
+        prefs = getSharedPreferences("ui_state", MODE_PRIVATE);
+        if (prefs.getBoolean("root_gate_completed", false)) {
+            rootOverlay.setVisibility(View.GONE);
+        } else {
+            showRootGate(false);
+        }
+
+        animateDashboard(content);
         DebugLog.add("MainActivity started");
         main.post(update);
     }
@@ -202,13 +227,82 @@ public class MainActivity extends Activity {
         grid.addView(row, rowLp);
     }
 
+    private void checkRootFromOverlay() {
+        if (busy) return;
+        busy = true;
+        rootOverlay.setChecking();
+        DebugLog.add("Root permission check requested");
+        worker.execute(() -> {
+            boolean root = RootShell.isRootAvailable();
+            DebugLog.add("Root permission result=" + root);
+            main.post(() -> {
+                busy = false;
+                rootOverlay.setResult(root);
+                if (root) {
+                    prefs.edit().putBoolean("root_gate_completed", true).apply();
+                    clearRootBlur();
+                    rootOverlay.dismissAnimated();
+                    Toast.makeText(this, "Root access granted", Toast.LENGTH_SHORT).show();
+                }
+            });
+        });
+    }
+
+    private void showRootGate(boolean animate) {
+        if (rootOverlay == null || scroll == null) return;
+        rootOverlay.setVisibility(View.VISIBLE);
+        rootOverlay.setAlpha(0f);
+        rootOverlay.setScaleX(.94f);
+        rootOverlay.setScaleY(.94f);
+        if (Build.VERSION.SDK_INT >= 31) {
+            scroll.setRenderEffect(RenderEffect.createBlurEffect(dp(12), dp(12), Shader.TileMode.CLAMP));
+        }
+        if (animate) {
+            rootOverlay.animate().alpha(1f).scaleX(1f).scaleY(1f)
+                    .setDuration(260).setInterpolator(new android.view.animation.OvershootInterpolator(1.15f)).start();
+        } else {
+            rootOverlay.setAlpha(1f);
+            rootOverlay.setScaleX(1f);
+            rootOverlay.setScaleY(1f);
+        }
+    }
+
+    private void clearRootBlur() {
+        if (scroll != null && Build.VERSION.SDK_INT >= 31) {
+            scroll.setRenderEffect(null);
+        }
+    }
+
+    private void animateDashboard(View content) {
+        for (int i = 0; i < content.getChildCount(); i++) {
+            View child = content.getChildAt(i);
+            child.setAlpha(0f);
+            child.setTranslationY(dp(16));
+            child.animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setStartDelay(45L * i)
+                    .setDuration(480)
+                    .setInterpolator(new android.view.animation.OvershootInterpolator(0.9f))
+                    .start();
+        }
+    }
+
     private void toggleBypass() {
         if (busy) return;
         busy = true;
         bypassSwitch.setEnabled(false);
         worker.execute(() -> {
             boolean root = RootShell.isRootAvailable();
-            boolean current = root && RootShell.isBypassEnabled();
+            if (!root) {
+                main.post(() -> {
+                    busy = false;
+                    bypassSwitch.setEnabled(true);
+                    showRootGate(true);
+                });
+                return;
+            }
+            boolean current = RootShell.isBypassEnabled();
             boolean target = !current;
             boolean ok = root && RootShell.setBypass(target);
             DebugLog.add("Bypass target=" + target + " result=" + ok);
@@ -226,12 +320,12 @@ public class MainActivity extends Activity {
 
     private void refresh(PowerReader.Snapshot s, boolean bypass, boolean rooted) {
         float level = parseLevel(s.battery);
-        gauge.setValues(level, s.powerW, s.plugged);
+        gauge.setValues(level, s.powerW, s.charging);
 
         voltageCard.setData("VOLTAGE", String.format(Locale.US, "%.2f V", s.voltageV), "ϟ",
                 s.voltageV / 10.0, GREEN, true);
         currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", s.currentA * 1000), "≈",
-                Math.min(s.currentA / 5.0, .95), GREEN, true);
+                Math.min(Math.abs(s.currentA) / 5.0, .95), GREEN, true);
         powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", s.powerW), "▣",
                 Math.min(s.powerW / 30.0, .95), GREEN, true);
         tempCard.setData("TEMPERATURE", String.format(Locale.US, "%.1f°C", s.temperatureC), "♨",
@@ -253,9 +347,9 @@ public class MainActivity extends Activity {
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
-                "UI update: variant=%s design=%dmAh cells=%d rawVoltage=%.3fV voltage=%.3fV current=%.3fA power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
-                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.cellCount, s.rawVoltageV, s.voltageV, s.currentA, s.powerW, s.temperatureC,
-                s.plugged, s.charger, bypass, rooted));
+                "UI update: variant=%s design=%dmAh cells=%d rawVoltage=%.3fV voltage=%.3fV rawCurrent=%.3fA current=%.3fA power=%.3fW temp=%.1fC plugged=%s charging=%s charger=%s bypass=%s root=%s",
+                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.cellCount, s.rawVoltageV, s.voltageV, s.rawCurrentA, s.currentA, s.powerW, s.temperatureC,
+                s.plugged, s.charging, s.charger, bypass, rooted));
     }
 
     private float parseLevel(String s) {
