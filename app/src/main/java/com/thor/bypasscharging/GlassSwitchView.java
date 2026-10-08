@@ -113,7 +113,7 @@ public final class GlassSwitchView extends View {
         paint.setColor(blend(0x22FFFFFF, 0x449DD49D, progress));
         canvas.drawCircle(thumbX + thumb / 2f, thumbTop + thumb / 2f, thumb / 2.6f, paint);
 
-        paint.setTypeface(Typeface.DEFAULT_BOLD);
+        paint.setTypeface(AppTypography.labelMedium());
         paint.setTextSize(sp(10));
         paint.setTextAlign(Paint.Align.CENTER);
         paint.setColor(blend(TEXT, TEXT_ON, progress));
