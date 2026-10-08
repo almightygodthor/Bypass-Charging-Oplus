@@ -28,7 +28,7 @@ public final class BypassNodeDetector {
 
     public static String find() {
         String current = cached;
-        if (current != null && RootShell.exists(current)) return current;
+        if (current != null && !current.isEmpty()) return current;
 
         for (String path : EXACT) {
             if (isBinaryNode(path)) {
@@ -45,8 +45,8 @@ public final class BypassNodeDetector {
 
         String output = RootShell.run(
                 "find /sys/devices/virtual/oplus_chg /sys/class/power_supply " +
-                "/sys/devices/platform -type f \\(" + names +
-                "\\) 2>/dev/null | head -100");
+                "/sys/devices/platform -type f \(" + names +
+                "\) 2>/dev/null | head -100");
 
         LinkedHashSet<String> candidates = new LinkedHashSet<>();
         for (String line : output.split("\\n")) {
