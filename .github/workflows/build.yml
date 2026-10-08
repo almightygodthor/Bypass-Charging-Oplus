@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -41,79 +41,24 @@ jobs:
           yes | "$SDKMANAGER" --licenses >/dev/null || true
           "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
 
-      - name: Restore persistent signing key
-        env:
-          ANDROID_SIGNING_KEYSTORE_BASE64: ${{ secrets.ANDROID_SIGNING_KEYSTORE_BASE64 }}
-          ANDROID_SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_SIGNING_STORE_PASSWORD }}
-          ANDROID_SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_SIGNING_KEY_ALIAS }}
-          ANDROID_SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_SIGNING_KEY_PASSWORD }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          for name in ANDROID_SIGNING_KEYSTORE_BASE64 ANDROID_SIGNING_STORE_PASSWORD ANDROID_SIGNING_KEY_ALIAS ANDROID_SIGNING_KEY_PASSWORD; do
-            if [ -z "${!name}" ]; then
-              echo "::error::Missing GitHub Actions secret: $name"
-              exit 1
-            fi
-          done
-
-          KEYSTORE="$RUNNER_TEMP/oplus-bypass-release.jks"
-          printf '%s' "$ANDROID_SIGNING_KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE"
-          chmod 600 "$KEYSTORE"
-
-          echo "ANDROID_SIGNING_KEYSTORE=$KEYSTORE" >> "$GITHUB_ENV"
-          echo "ANDROID_SIGNING_STORE_PASSWORD=$ANDROID_SIGNING_STORE_PASSWORD" >> "$GITHUB_ENV"
-          echo "ANDROID_SIGNING_KEY_ALIAS=$ANDROID_SIGNING_KEY_ALIAS" >> "$GITHUB_ENV"
-          echo "ANDROID_SIGNING_KEY_PASSWORD=$ANDROID_SIGNING_KEY_PASSWORD" >> "$GITHUB_ENV"
-
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: '9.6.0'
 
-      - name: Build signed beta APK
-        run: gradle :app:assembleRelease --no-daemon --stacktrace
+      - name: Build debug APK
+        run: gradle :app:assembleDebug --no-daemon --stacktrace
 
-      - name: Verify APK signature
+      - name: Prepare telemetry test APK
         shell: bash
         run: |
           set -euo pipefail
-          APK="app/build/outputs/apk/release/app-release.apk"
-          apksigner verify --verbose --print-certs "$APK"
-          ls -lh "$APK"
+          cp app/build/outputs/apk/debug/app-debug.apk Oplus-Bypass-Charging-telemetry-test.apk
+          ls -lh Oplus-Bypass-Charging-telemetry-test.apk
 
-      - name: Prepare beta APK
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp app/build/outputs/apk/release/app-release.apk "Oplus-Bypass-Charging-v2.0.0-beta.${{ github.run_number }}.apk"
-
-      - name: Upload APK artifact
+      - name: Upload test APK
         uses: actions/upload-artifact@v7
         with:
-          path: "Oplus-Bypass-Charging-v2.0.0-beta.${{ github.run_number }}.apk"
+          path: Oplus-Bypass-Charging-telemetry-test.apk
           archive: false
           retention-days: 30
-
-      - name: Publish beta test release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TAG="v2.0.0-beta.${{ github.run_number }}"
-          APK="Oplus-Bypass-Charging-v2.0.0-beta.${{ github.run_number }}.apk"
-          TITLE="Oplus Bypass Charging v2.0.0 Beta Build #${{ github.run_number }}"
-
-          gh release create "$TAG" \
-            --repo "${{ github.repository }}" \
-            --target "${{ github.sha }}" \
-            --title "$TITLE" \
-            --notes "Automated signed beta/test build from commit ${{ github.sha }}.
-
-          All beta and future stable builds use the same persistent signing certificate.
-          This is a pre-release build for testing only." \
-            --prerelease \
-            "$APK"
