@@ -17,6 +17,7 @@ public final class ChargingGaugeView extends View {
     private float level;
     private double power;
     private boolean charging;
+    private boolean bypass;
     private ValueAnimator animator;
 
     private static final int TRACK = 0xFF292E2A;
@@ -30,6 +31,10 @@ public final class ChargingGaugeView extends View {
     private void init() { paint.setStrokeCap(Paint.Cap.ROUND); }
 
     public void setValues(float level, double power, boolean charging) {
+        setValues(level, power, charging, false);
+    }
+
+    public void setValues(float level, double power, boolean charging, boolean bypass) {
         float targetLevel = Math.max(0, Math.min(100, level));
         double targetPower = power;
         float startLevel = this.level;
@@ -38,6 +43,7 @@ public final class ChargingGaugeView extends View {
         if (animator != null) animator.cancel();
 
         this.charging = charging;
+        this.bypass = bypass;
         animator = ValueAnimator.ofFloat(0f, 1f);
         animator.setDuration(620);
         animator.setInterpolator(new PathInterpolator(.16f, 1f, .3f, 1f));
@@ -66,23 +72,32 @@ public final class ChargingGaugeView extends View {
 
         paint.setStyle(Paint.Style.FILL);
         paint.setTextAlign(Paint.Align.CENTER);
-        paint.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        paint.setTypeface(AppTypography.display());
         paint.setColor(TEXT);
         paint.setTextSize(sp(46));
-        c.drawText(String.format(Locale.US, "%.1f", level), cx - dp(4), cy + dp(5), paint);
-
+        String levelText = String.format(Locale.US, "%.0f", level);
+        float levelWidth = paint.measureText(levelText);
+        float percentSize = sp(20);
+        paint.setTextSize(percentSize);
+        float percentWidth = paint.measureText("%");
+        float totalWidth = levelWidth + dp(7) + percentWidth;
+        float levelX = cx - totalWidth / 2f + levelWidth / 2f;
+        float percentX = cx - totalWidth / 2f + levelWidth + dp(7) + percentWidth / 2f;
+        paint.setTextSize(sp(46));
+        c.drawText(levelText, levelX, cy + dp(5), paint);
         paint.setColor(GREEN);
-        paint.setTextSize(sp(22));
-        c.drawText("%", cx + dp(70), cy + dp(5), paint);
+        paint.setTypeface(AppTypography.labelMedium());
+        paint.setTextSize(percentSize);
+        c.drawText("%", percentX, cy + dp(5), paint);
 
         paint.setTypeface(Typeface.DEFAULT);
         paint.setLetterSpacing(.30f);
         paint.setColor(MUTED);
         paint.setTextSize(sp(12));
-        c.drawText(charging ? "CHARGING" : "ON BATTERY", cx, cy + dp(49), paint);
+        c.drawText(bypass ? "BYPASS ACTIVE" : (charging ? "CHARGING" : "ON BATTERY"), cx, cy + dp(49), paint);
         paint.setLetterSpacing(0);
 
-        float pillW = dp(154), pillH = dp(40), left = cx-pillW/2, top = cy+dp(68);
+        float pillW = dp(136), pillH = dp(34), left = cx-pillW/2, top = cy+dp(66);
         paint.setColor(0x263B533C);
         c.drawRoundRect(left, top, left+pillW, top+pillH, pillH/2, pillH/2, paint);
         paint.setStyle(Paint.Style.STROKE);
@@ -91,7 +106,8 @@ public final class ChargingGaugeView extends View {
         c.drawRoundRect(left, top, left+pillW, top+pillH, pillH/2, pillH/2, paint);
         paint.setStyle(Paint.Style.FILL);
         paint.setTypeface(Typeface.DEFAULT_BOLD);
-        paint.setTextSize(sp(16));
+        paint.setTypeface(AppTypography.labelMedium());
+        paint.setTextSize(sp(14));
         paint.setColor(GREEN);
         c.drawText(String.format(Locale.US, "%+.1f W", power), cx, top+dp(26), paint);
     }
