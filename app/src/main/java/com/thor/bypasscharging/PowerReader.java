@@ -89,7 +89,7 @@ public final class PowerReader {
 
     private static double voltageFromRaw(long raw) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
-        double v = raw;
+        double v = Math.abs(raw);
         if (v > 100_000) return v / 1_000_000.0; // µV
         if (v > 1_000) return v / 1_000.0;       // mV
         return v;                                // already V
