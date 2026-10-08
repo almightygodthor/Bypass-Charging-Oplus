@@ -71,6 +71,8 @@ public final class PowerReader {
         public final String battery;
         public final double currentA;
         public final double voltageV;
+        public final double rawVoltageV;
+        public final int cellCount;
         public final double powerW;
         public final double temperatureC;
         public final boolean plugged;
@@ -79,13 +81,15 @@ public final class PowerReader {
         public final int designCapacityMah;
         public final GtNeo3Variant.Type variant;
 
-        Snapshot(String battery, double currentA, double voltageV, double temperatureC,
+        Snapshot(String battery, double currentA, double rawVoltageV, double temperatureC,
                  boolean plugged, String charger, double healthPercent,
                  int designCapacityMah, GtNeo3Variant.Type variant) {
             this.battery = battery;
             this.currentA = currentA;
-            this.voltageV = voltageV;
-            this.powerW = currentA * voltageV;
+            this.rawVoltageV = rawVoltageV;
+            this.cellCount = variant == GtNeo3Variant.Type.UNKNOWN ? 1 : 2;
+            this.voltageV = rawVoltageV * this.cellCount;
+            this.powerW = currentA * this.voltageV;
             this.temperatureC = temperatureC;
             this.plugged = plugged;
             this.charger = charger;
