@@ -299,11 +299,19 @@ public final class PowerReader {
 
         if (currentPath.equals(BATTERY + "uevent")) {
             long raw = readUeventValue("POWER_SUPPLY_CURRENT_NOW");
-            return raw == Long.MIN_VALUE ? 0 : raw / 1_000_000.0;
+            // This MT6895/OPLUS battery driver exposes POWER_SUPPLY_CURRENT_NOW
+            // in mA. The supplied dump contains values such as -476/-513.
+            return raw == Long.MIN_VALUE ? 0 : raw / 1000.0;
         }
 
         if (!currentPath.isEmpty()) {
-            return currentFromRaw(number(currentPath), currentPath);
+            long raw = number(currentPath);
+            // The same vendor battery driver exposes battery/current_now in mA,
+            // unlike the generic power_supply convention of microamps.
+            if (currentPath.equals(BATTERY + "current_now")) {
+                return raw == Long.MIN_VALUE ? 0 : raw / 1000.0;
+            }
+            return currentFromRaw(raw, currentPath);
         }
 
         currentPath = resolveNonZero(CURRENT_NAMES);
