@@ -33,7 +33,8 @@ public class MainActivity extends Activity {
 
     private ChargingGaugeView gauge;
     private SparklineCardView voltageCard, currentCard, powerCard, tempCard, healthCard, pluggedCard;
-    private TextView monitorDot, monitorTitle, monitorText, monitorAction, rootStatus, subtitleView;
+    private TextView monitorDot, monitorTitle, monitorText, rootStatus, subtitleView;
+    private GlassSwitchView bypassSwitch;
     private boolean busy;
 
     private int dp(float v) { return Math.round(v * getResources().getDisplayMetrics().density); }
@@ -112,23 +113,23 @@ public class MainActivity extends Activity {
         monRow.setGravity(Gravity.CENTER_VERTICAL);
 
         monitorDot = tv("●", 17, GREEN);
-        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(30), dp(62)));
+        monitorDot.setGravity(Gravity.CENTER);
+        monRow.addView(monitorDot, new LinearLayout.LayoutParams(dp(28), dp(62)));
 
         LinearLayout monText = new LinearLayout(this);
         monText.setOrientation(LinearLayout.VERTICAL);
-        monitorTitle = tv("Monitoring Active", 16, TEXT);
+        monitorTitle = tv("BYPASS CHARGING", 15, TEXT);
         monitorTitle.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        monitorText = tv("Live charging stats and bypass state", 12, MUTED);
-        monitorText.setPadding(0, dp(3), 0, 0);
+        monitorTitle.setLetterSpacing(.04f);
+        monitorText = tv("Direct battery bypass control", 12, MUTED);
+        monitorText.setPadding(0, dp(4), 0, 0);
         monText.addView(monitorTitle);
         monText.addView(monitorText);
         monRow.addView(monText, new LinearLayout.LayoutParams(0, dp(62), 1));
 
-        monitorAction = tv("Disable", 14, GREEN);
-        monitorAction.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        monitorAction.setGravity(Gravity.CENTER);
-        monitorAction.setOnClickListener(v -> toggleBypass());
-        monRow.addView(monitorAction, new LinearLayout.LayoutParams(dp(86), dp(62)));
+        bypassSwitch = new GlassSwitchView(this);
+        bypassSwitch.setOnCheckedChangeListener(checked -> toggleBypass());
+        monRow.addView(bypassSwitch, new LinearLayout.LayoutParams(dp(124), dp(62)));
         monitor.addView(monRow);
         content.addView(monitor, new LinearLayout.LayoutParams(-1, dp(88)));
 
@@ -244,11 +245,11 @@ public class MainActivity extends Activity {
         pluggedCard.setData("PLUGGED", s.charger, "▣", s.plugged ? .8 : .2, TEXT, false);
 
         subtitleView.setText(GtNeo3Variant.label(s.variant));
-        monitorTitle.setText(bypass ? "Bypass Active" : "Monitoring Active");
+        monitorTitle.setText("BYPASS CHARGING");
         monitorText.setText(bypass
-                ? "Battery is isolated from normal charging"
-                : (s.plugged ? "Live charging stats and bypass state" : "Connect a charger for live telemetry"));
-        monitorAction.setText(bypass ? "Disable" : "Enable");
+                ? "Battery bypass is enabled"
+                : (s.plugged ? "Normal charging is active" : "Connect a charger for bypass control"));
+        bypassSwitch.setChecked(bypass);
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
