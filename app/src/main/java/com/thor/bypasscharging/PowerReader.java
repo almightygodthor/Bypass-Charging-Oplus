@@ -28,7 +28,7 @@ public final class PowerReader {
             this.battery = battery;
             this.currentA = currentA;
             this.voltageV = voltageV;
-            this.powerW = Math.abs(currentA * voltageV);
+            this.powerW = currentA * voltageV;
             this.temperatureC = temperatureC;
             this.plugged = plugged;
             this.charger = charger;
@@ -81,7 +81,7 @@ public final class PowerReader {
 
     private static double currentFromSysfs(long raw) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
-        double a = Math.abs(raw);
+        double a = raw;
         if (a >= 100_000) return a / 1_000_000.0; // µA
         if (a >= 100) return a / 1_000.0;          // mA
         return a;                                  // A
@@ -89,7 +89,7 @@ public final class PowerReader {
 
     private static double voltageFromRaw(long raw) {
         if (raw == Long.MIN_VALUE || raw == 0) return 0;
-        double v = Math.abs(raw);
+        double v = raw;
         if (v > 100_000) return v / 1_000_000.0; // µV
         if (v > 1_000) return v / 1_000.0;       // mV
         return v;                                // already V
@@ -146,7 +146,7 @@ public final class PowerReader {
 
         // BatteryManager CURRENT_NOW/CURRENT_AVERAGE are µA.
         double currentA = frameworkCurrent
-                ? Math.abs(rawCurrent) / 1_000_000.0
+                ? rawCurrent / 1_000_000.0
                 : currentFromSysfs(rawCurrent);
 
         int uvFromIntent = voltageMv > 0 ? voltageMv * 1000 : 0;
