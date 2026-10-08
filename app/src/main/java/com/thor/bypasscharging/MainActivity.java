@@ -250,7 +250,9 @@ public class MainActivity extends Activity {
         monitorDot.setTextColor(bypass ? GREEN : (s.plugged ? GREEN : MUTED));
         rootStatus.setText(rooted ? "Root access granted" : "Root access required");
         DebugLog.add(String.format(Locale.US,
-                "UI update: level=%s current=%.3fA voltage=%.3fV power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
+                "UI update: variant=%s design=%dmAh level=%s current=%.3fA voltage=%.3fV power=%.3fW temp=%.1fC plugged=%s charger=%s bypass=%s root=%s",
+                GtNeo3Variant.label(s.variant), s.designCapacityMah, s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
+                s.plugged, s.charger, bypass, rooted));
                 s.battery, s.currentA, s.voltageV, s.powerW, s.temperatureC,
                 s.plugged, s.charger, bypass, rooted));
     }
