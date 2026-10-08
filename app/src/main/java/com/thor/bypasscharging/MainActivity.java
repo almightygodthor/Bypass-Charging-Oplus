@@ -337,9 +337,9 @@ public class MainActivity extends Activity {
                 s.voltageV / 10.0, GREEN, true);
         double displayCurrentA = bypass ? 0.0 : s.currentA;
         double displayPowerW = bypass ? 0.0 : s.powerW;
-        currentCard.setData("CURRENT", String.format(Locale.US, "%+.0f mA", displayCurrentA * 1000), "⇆",
+        currentCard.setData("CURRENT", bypass ? "0 mA" : String.format(Locale.US, "%+.0f mA", displayCurrentA * 1000), "⇆",
                 bypass ? .05 : Math.min(Math.abs(displayCurrentA) / 5.0, .95), GREEN, true);
-        powerCard.setData("WATTAGE", String.format(Locale.US, "%+.1f W", displayPowerW), "ϟ",
+        powerCard.setData("WATTAGE", bypass ? "0.0 W" : String.format(Locale.US, "%+.1f W", displayPowerW), "ϟ",
                 bypass ? .05 : Math.min(Math.abs(displayPowerW) / 30.0, .95), GREEN, true);
         tempCard.setData("TEMPERATURE", String.format(Locale.US, "%.1f°C", s.temperatureC), "♨",
                 Math.min(s.temperatureC / 50.0, .95), 0xFFFFA7A0, true);
