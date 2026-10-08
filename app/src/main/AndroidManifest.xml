@@ -4,7 +4,8 @@
         <activity android:name=".MainActivity" android:exported="true">
             <intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter>
         </activity>
-        <service android:name=".BypassTileService" android:label="Bypass Charging" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true">
+        <service android:name=".BypassTileService" android:label="Bypass Charging" android:icon="@drawable/ic_qs_bypass" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE" android:exported="true">
+            <meta-data android:name="android.service.quicksettings.TOGGLEABLE_TILE" android:value="true"/>
             <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE"/></intent-filter>
         </service>
         <receiver android:name=".PowerReceiver" android:exported="false">
