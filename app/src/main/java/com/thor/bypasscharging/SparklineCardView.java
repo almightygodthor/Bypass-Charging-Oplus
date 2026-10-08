@@ -5,6 +5,8 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
+import android.animation.ValueAnimator;
+import android.view.animation.PathInterpolator;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -20,6 +22,7 @@ public final class SparklineCardView extends View {
     private boolean showGraph = true;
     private boolean initialized;
     private int sampleCursor;
+    private ValueAnimator sampleAnimator;
 
     public SparklineCardView(Context c) { super(c); init(); }
     public SparklineCardView(Context c, AttributeSet a) { super(c, a); init(); }
@@ -46,11 +49,22 @@ public final class SparklineCardView extends View {
             Arrays.fill(samples, sample);
             initialized = true;
         } else {
+            float previous = samples[samples.length - 1];
             System.arraycopy(samples, 1, samples, 0, samples.length - 1);
-            samples[samples.length - 1] = sample;
+            samples[samples.length - 1] = previous;
             sampleCursor++;
+
+            if (sampleAnimator != null) sampleAnimator.cancel();
+            sampleAnimator = ValueAnimator.ofFloat(previous, sample);
+            sampleAnimator.setDuration(760);
+            sampleAnimator.setInterpolator(new PathInterpolator(.16f, 1f, .3f, 1f));
+            sampleAnimator.addUpdateListener(a -> {
+                samples[samples.length - 1] = (float) a.getAnimatedValue();
+                postInvalidateOnAnimation();
+            });
+            sampleAnimator.start();
         }
-        invalidate();
+        postInvalidateOnAnimation();
     }
 
     @Override protected void onDraw(Canvas c) {
