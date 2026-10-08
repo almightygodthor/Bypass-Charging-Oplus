@@ -375,7 +375,9 @@ public class MainActivity extends Activity {
                 worker.execute(() -> {
                     PowerReader.Snapshot s = PowerReader.snapshot(MainActivity.this);
                     DebugLog.add("Telemetry snapshot captured");
-                    boolean root = RootShell.isRootAvailable();
+                    boolean gateCompleted = prefs != null &&
+                            prefs.getBoolean("root_gate_completed", false);
+                    boolean root = gateCompleted && RootShell.isRootAvailable();
                     boolean bypass = root && RootShell.isBypassEnabled();
                     main.post(() -> refresh(s, bypass, root));
                 });
