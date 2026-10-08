@@ -43,7 +43,7 @@ public final class RootAccessOverlay extends FrameLayout {
         card.addView(icon, new LinearLayout.LayoutParams(-1, dp(38)));
 
         TextView title = text("ROOT ACCESS", 22, TEXT);
-        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        title.setTypeface(AppTypography.displayMedium());
         title.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(-1, dp(34));
         titleLp.topMargin = dp(8);
@@ -65,7 +65,7 @@ public final class RootAccessOverlay extends FrameLayout {
         card.addView(status, new LinearLayout.LayoutParams(-1, dp(28)));
 
         check = text("CHECK ROOT PERMISSION", 13, Color.rgb(12, 25, 14));
-        check.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        check.setTypeface(AppTypography.labelMedium());
         check.setGravity(Gravity.CENTER);
         check.setLetterSpacing(.05f);
         check.setBackground(round(GREEN, 18));
