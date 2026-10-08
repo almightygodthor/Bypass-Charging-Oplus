@@ -42,7 +42,7 @@ public class AboutActivity extends Activity {
         return v;
     }
 
-    private android.graphics.drawable.GradientDrawable glass(float color, float radius) {
+    private android.graphics.drawable.GradientDrawable glass(int color, float radius) {
         android.graphics.drawable.GradientDrawable g = new android.graphics.drawable.GradientDrawable();
         g.setColor(color);
         g.setCornerRadius(dp(radius));
