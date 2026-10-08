@@ -49,7 +49,7 @@ public final class DebugLogActivity extends Activity {
         header.addView(back, new LinearLayout.LayoutParams(dp(48), dp(54)));
 
         TextView title = text("DEBUG LOG", 21, TEXT);
-        title.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        title.setTypeface(AppTypography.displayMedium());
         title.setGravity(Gravity.CENTER_VERTICAL);
         header.addView(title, new LinearLayout.LayoutParams(0, dp(54), 1));
 
@@ -87,7 +87,7 @@ public final class DebugLogActivity extends Activity {
         scroll.setBackground(round(CARD, 24));
 
         logView = text("", 11, Color.rgb(210, 218, 211));
-        logView.setTypeface(Typeface.MONOSPACE);
+        logView.setTypeface(AppTypography.mono());
         logView.setGravity(Gravity.TOP | Gravity.START);
         logView.setIncludeFontPadding(true);
         logView.setLineSpacing(0f, 1.12f);
@@ -138,7 +138,7 @@ public final class DebugLogActivity extends Activity {
     private TextView actionButton(String s) {
         TextView v = text(s, 10, GREEN);
         v.setGravity(Gravity.CENTER);
-        v.setTypeface(Typeface.create("sans-serif", Typeface.BOLD));
+        v.setTypeface(AppTypography.labelMedium());
         v.setBackground(round(0x332E4631, 10));
         v.setAllCaps(false);
         return v;
