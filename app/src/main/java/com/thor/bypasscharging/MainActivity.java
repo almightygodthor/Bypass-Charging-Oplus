@@ -8,7 +8,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
-import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
@@ -97,7 +96,7 @@ public class MainActivity extends Activity {
         title.setGravity(Gravity.CENTER_VERTICAL);
         content.addView(title, new LinearLayout.LayoutParams(-1, dp(46)));
 
-        TextView subtitle = text("Vivid Glass • live charging telemetry", 13);
+        TextView subtitle = text("Live charging control", 13);
         subtitle.setTextColor(Color.rgb(123, 177, 229));
         content.addView(subtitle, new LinearLayout.LayoutParams(-1, dp(30)));
 
@@ -153,7 +152,7 @@ public class MainActivity extends Activity {
         root.setTextColor(Color.rgb(205, 225, 245));
         plug = text("Charger: checking…", 13);
         plug.setTextColor(Color.rgb(205, 225, 245));
-        node = text("OPLUS node: checking…", 13);
+        node = text("Node: checking…", 13);
         node.setTextColor(Color.rgb(135, 184, 235));
 
         info.addView(root, new LinearLayout.LayoutParams(-1, dp(28)));
@@ -174,7 +173,7 @@ public class MainActivity extends Activity {
         toggleLp.topMargin = dp(14);
         content.addView(toggle, toggleLp);
 
-        TextView note = text("Requires root • OPLUS charging node control", 11);
+        TextView note = text("Root access required", 11);
         note.setTextColor(Color.rgb(94, 121, 151));
         note.setGravity(Gravity.CENTER);
         LinearLayout.LayoutParams noteLp = new LinearLayout.LayoutParams(-1, dp(30));
@@ -193,7 +192,7 @@ public class MainActivity extends Activity {
             refresh();
             Toast.makeText(this,
                     ok ? (target ? "Bypass charging enabled" : "Normal charging restored")
-                       : "Root or OPLUS charging node unavailable",
+                       : "Root or charging control node unavailable",
                     Toast.LENGTH_SHORT).show();
         });
 
@@ -201,8 +200,9 @@ public class MainActivity extends Activity {
     }
 
     private void refresh() {
-        boolean bypass = RootShell.isBypassEnabled();
         boolean rooted = RootShell.isRootAvailable();
+        String bypassNode = BypassNodeDetector.find();
+        boolean bypass = RootShell.isBypassEnabled();
         boolean plugged = PowerReader.plugged();
 
         state.setText(bypass ? "BYPASS ACTIVE" : "CHARGING NORMAL");
@@ -211,7 +211,9 @@ public class MainActivity extends Activity {
 
         root.setText("Root: " + (rooted ? "Granted ✓" : "Unavailable ✕"));
         plug.setText("Charger: " + (plugged ? "Connected ✓" : "Disconnected"));
-        node.setText("OPLUS node: " + (bypass ? "Bypass enabled" : "Normal charging"));
+        node.setText("Node: " + (bypassNode.isEmpty()
+                ? "Not detected"
+                : BypassNodeDetector.displayName(bypassNode)));
 
         battery.setText("Battery " + PowerReader.battery());
         current.setText(String.format(Locale.US, "%.2f A", PowerReader.currentA()));
@@ -222,7 +224,7 @@ public class MainActivity extends Activity {
     private final Runnable update = new Runnable() {
         @Override public void run() {
             refresh();
-            handler.postDelayed(this, 1000);
+            handler.postDelayed(this, 1500);
         }
     };
 
