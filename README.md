@@ -1,53 +1,54 @@
-————————
+# Oplus Bypass Charging ⚡
 
-📌 Thesis: Bypass Charging Control for Oplus Devices
+A clean, open-source root utility for controlling Oplus bypass charging from the app and Quick Settings.
 
-✏ Abstract
-This project explores the concept and implementation of bypass charging on Oplus devices, a technique where the device powers itself directly from the charger, bypassing the battery during charging. This reduces battery wear and heat generation during prolonged or heavy charging sessions, enhancing battery lifespan and device thermal management.
+> **Lead app developer:** [Robinop](https://github.com/robinop)
+> **Project / original concept:** [Thor](https://github.com/almightygodthor)
 
-✏ Introduction
-Oplus smartphones employ advanced charging architectures involving power path controllers and smart charging ICs. In bypass charging mode, electrical power from the charger supplies the system directly instead of routing through the battery. This separation helps optimize device heat and battery performance, especially under demanding conditions such as gaming or 5G data use.
+## What it does
 
-✏ Technical Background
-⦁ Overview of Oplus charging ICs and power path controllers.
-⦁ Description of battery charging versus bypass charging modes.
-⦁ Role of kernel drivers and firmware in managing charging behavior.
+- Root-powered Oplus bypass charging control.
+- Quick Settings tile with live ON/OFF state.
+- Live battery percentage, current, voltage and calculated power.
+- Automatically restores normal charging when the charger is disconnected.
+- Modern vivid-blue glass-style AMOLED UI.
+- No dependency on the original APK's package, classes or branding.
 
-✏ Design and Implementation
-⦁ Investigating kernel interfaces and sysfs entries available on Oplus devices for charging control.
-⦁ Reverse engineering proprietary charging modules and thermal management components.
-⦁ Developing kernel patches or user-space scripts to enable conditional bypass charging (e.g., triggered by temperature or CPU load).
-⦁ Monitoring battery health, thermal data, and system stability to evaluate impact.
+## Oplus control interface
 
-✏ Benefits of Bypass Charging
-⦁ Reduced Thermal Stress: Limits heat generation by preventing battery charge/discharge cycles during heavy usage.
-⦁ Extended Battery Lifespan: Minimizes battery degradation by reducing charge cycle count.
-⦁ Improved Performance: Maintains system stability and prevents thermal throttling during intensive scenarios like gaming or 5G streaming.
-⦁ Enhanced User Experience: Enables faster, safer charging while the device is in heavy use.
+The initial implementation targets the Oplus charging interface discovered from the original working application:
 
-✏ Challenges
-⦁ Scarce public documentation on Oplus proprietary charging hardware and firmware.
-⦁ Ensuring bypass charging activates only under safe conditions without risking battery or device safety.
-⦁ Supporting multiple device models with varying hardware designs and software stacks.
+`/sys/devices/virtual/oplus_chg/battery/mmi_charging_enable`
 
-✏ Conclusion
-Bypass charging presents a viable approach to optimize thermal management and battery health on Oplus devices during intensive charging and usage periods. This project aims to provide insights and tools that help developers and enthusiasts explore and implement bypass charging control effectively.
+- `0` → bypass enabled
+- `1` → normal charging
 
-————————
+Root is required to write this node.
 
-✏ How to Use
+## Live power telemetry
 
-1. Download and install the bypass charging app for your Oplus device.
-2. Grant Superuser (root) permission to the app when prompted.
-3. Pull down your notification shade or Quick Settings (QS) panel.
-4. Add the new tile named “Bypass Charging” to your active QS tiles area.
-5. The QS tile will let you toggle bypass charging on or off easily.
-6. Note: The tile only works when the charger is connected—once unplugged, bypass charging stops automatically to protect the battery.
+The app reads standard Android power-supply interfaces when available:
 
-————————
+- `/sys/class/power_supply/battery/capacity`
+- `/sys/class/power_supply/battery/current_now`
+- `/sys/class/power_supply/battery/voltage_now`
+- USB/AC online state
 
-✏ Credits
-⦁ Original concept and script by Thundergod Thor⚡
-⦁ Application design and app development by Robinop
+Power is calculated from current × voltage. Hardware/vendor implementations can expose different nodes, so unsupported readings are shown as unavailable rather than fabricated.
 
-————————
+## Build
+
+The repository uses Android Gradle Plugin **9.4.0**, Gradle **9.6.0**, JDK 17 and Android API 37. These versions match the current Android build-tool compatibility documentation. citeturn1search3turn1search8
+
+GitHub Actions builds the debug APK automatically on pushes to `main` and can also be started manually.
+
+## Credits
+
+- **Robinop** — lead application developer and original application implementation.
+- **Thor / Thundergod Thor** — project owner, original concept and Oplus charging research.
+
+This repository is a clean source reimplementation; the original APK is used only as a behavioral reference.
+
+## Safety
+
+This utility directly controls a vendor charging interface and requires root. Use only on compatible Oplus hardware where the interface is known to be valid. Do not assume that a sysfs interface is safe or equivalent across different devices or kernels.
