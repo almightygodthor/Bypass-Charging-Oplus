@@ -21,9 +21,10 @@ public final class PowerReader {
         public final double temperatureC;
         public final boolean plugged;
         public final String charger;
+        public final double healthPercent;
 
         Snapshot(String battery, double currentA, double voltageV, double temperatureC,
-                 boolean plugged, String charger) {
+                 boolean plugged, String charger, double healthPercent) {
             this.battery = battery;
             this.currentA = currentA;
             this.voltageV = voltageV;
@@ -31,6 +32,7 @@ public final class PowerReader {
             this.temperatureC = temperatureC;
             this.plugged = plugged;
             this.charger = charger;
+            this.healthPercent = healthPercent;
         }
     }
 
@@ -177,13 +179,23 @@ public final class PowerReader {
             default: charger = plugged ? "Connected" : "Battery";
         }
 
+        double healthPercent = 0;
+        String fullPath = resolve("charge_full");
+        String designPath = resolve("charge_full_design");
+        long full = number(fullPath);
+        long design = number(designPath);
+        if (full > 0 && design > 0 && full <= design * 2L) {
+            healthPercent = Math.max(0, Math.min(100, full * 100.0 / design));
+        }
+
         return new Snapshot(
                 level >= 0 ? String.format(Locale.US, "%.0f%%", (float) level) : "--",
                 currentA,
                 voltageV,
                 temperatureC,
                 plugged,
-                charger
+                charger,
+                healthPercent
         );
     }
 }
